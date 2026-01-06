@@ -25,13 +25,13 @@ const CENTER: [number, number] = [33.4735, -82.0105];
 const ESRI_SATELLITE =
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 
-// Status colors for markers
+// Status colors for markers (matching production HSL values)
 const statusColors: Record<BoatStatus, string> = {
-  OK: '#06B6D4',
-  'Needs inspection': '#F59E0B',
-  'Needs repair': '#F97316',
-  'Do not sail': '#DC2626',
-  'Out of service': '#6B7280',
+  OK: '#00A894',           // hsl(187 100% 30%) - Teal/Secondary
+  'Needs inspection': '#F59E0B', // hsl(35 90% 50%) - Orange/Accent
+  'Needs repair': '#F97316',     // Orange-500
+  'Do not sail': '#EF4444',      // hsl(0 84.2% 60.2%) - Red/Destructive
+  'Out of service': '#6B7280',   // Gray
 };
 
 function createMarkerIcon(status: BoatStatus): L.DivIcon {

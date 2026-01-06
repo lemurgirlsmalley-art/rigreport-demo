@@ -11,23 +11,23 @@ interface BoatCardProps {
   showReadyBadge?: boolean;
 }
 
-function getStatusConfig(status: BoatStatus, showReady: boolean): { bg: string; text: string; label: string } {
+function getStatusConfig(status: BoatStatus, showReady: boolean): { bg: string; text: string; label: string; border: string } {
   if (showReady && status === 'OK') {
-    return { bg: 'bg-amber-500', text: 'text-white', label: 'Ready' };
+    return { bg: 'bg-secondary', text: 'text-white', label: 'Ready', border: 'border-secondary' };
   }
   switch (status) {
     case 'OK':
-      return { bg: 'bg-cyan-500', text: 'text-white', label: 'OK' };
+      return { bg: 'bg-secondary', text: 'text-white', label: 'OK', border: 'border-secondary' };
     case 'Needs inspection':
-      return { bg: 'bg-amber-500', text: 'text-white', label: 'Needs inspection' };
+      return { bg: 'bg-accent', text: 'text-accent-foreground', label: 'Needs inspection', border: 'border-accent' };
     case 'Needs repair':
-      return { bg: 'bg-orange-500', text: 'text-white', label: 'Needs repair' };
+      return { bg: 'bg-orange-500', text: 'text-white', label: 'Needs repair', border: 'border-orange-600' };
     case 'Do not sail':
-      return { bg: 'bg-red-500', text: 'text-white', label: 'Do not sail' };
+      return { bg: 'bg-destructive', text: 'text-destructive-foreground', label: 'Do not sail', border: 'border-destructive' };
     case 'Out of service':
-      return { bg: 'bg-gray-500', text: 'text-white', label: 'Out of service' };
+      return { bg: 'bg-muted', text: 'text-muted-foreground', label: 'Out of service', border: 'border-border' };
     default:
-      return { bg: 'bg-gray-300', text: 'text-gray-800', label: status };
+      return { bg: 'bg-gray-300', text: 'text-gray-800', label: status, border: 'border-gray-400' };
   }
 }
 
@@ -52,7 +52,7 @@ export function BoatCard({ boat, className, showReadyBadge = false }: BoatCardPr
     <Link href={`/fleet/${boat.id}`}>
       <Card
         className={cn(
-          'cursor-pointer transition-all hover:shadow-md border-0 shadow-sm bg-white',
+          'cursor-pointer transition-all hover:shadow-md shadow-sm bg-card overflow-hidden border-t-4 border-t-transparent hover:border-t-primary flex flex-col h-full',
           className
         )}
       >
@@ -60,15 +60,16 @@ export function BoatCard({ boat, className, showReadyBadge = false }: BoatCardPr
           {/* Header with type badge and status */}
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs font-normal bg-white border-gray-200 text-gray-600">
+              <Badge variant="outline" className="text-xs font-normal bg-white border-input text-foreground">
                 {typeLabel}
               </Badge>
-              <Sailboat className="h-4 w-4 text-gray-400" />
+              <Sailboat className="h-4 w-4 text-muted-foreground" />
             </div>
             <span className={cn(
-              'px-2.5 py-0.5 rounded-full text-xs font-medium',
+              'px-2.5 py-0.5 rounded-full text-xs font-semibold border shadow-sm whitespace-nowrap',
               statusConfig.bg,
-              statusConfig.text
+              statusConfig.text,
+              statusConfig.border
             )}>
               {statusConfig.label}
             </span>

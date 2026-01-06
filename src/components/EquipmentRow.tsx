@@ -12,11 +12,11 @@ interface EquipmentRowProps {
 function getEquipmentStatusColor(status: EquipmentStatus): string {
   switch (status) {
     case 'OK':
-      return 'bg-cyan-500 text-white';
+      return 'bg-secondary text-white border border-secondary';
     case 'Needs repair':
-      return 'bg-orange-500 text-white';
+      return 'bg-orange-500 text-white border border-orange-600';
     case 'Out of service':
-      return 'bg-gray-500 text-white';
+      return 'bg-muted text-muted-foreground border border-border';
     default:
       return 'bg-gray-300 text-gray-800';
   }

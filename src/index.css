@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+@theme {
+  /* RigReport Color Palette */
+  --color-primary: #1e2a3b;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #22c55e;
+  --color-secondary-foreground: #FFFFFF;
+  --color-accent: #f97316;
+  --color-accent-foreground: #FFFFFF;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #FFFFFF;
+  --color-coral: #ef6461;
+  --color-coral-foreground: #FFFFFF;
+  --color-muted: #f8fafc;
+  --color-muted-foreground: #64748B;
+  --color-background: #f8fafc;
+  --color-foreground: #1e293b;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1e293b;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1e293b;
+  --color-border: #e2e8f0;
+  --color-input: #e2e8f0;
+  --color-ring: #1e2a3b;
+
+  /* Sidebar specific */
+  --color-sidebar: #1e2a3b;
+  --color-sidebar-foreground: #FFFFFF;
+  --color-sidebar-muted: rgba(255, 255, 255, 0.6);
+  --color-sidebar-accent: #ef6461;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Border Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Custom status colors */
+.status-ok {
+  @apply bg-green-500 text-white;
+}
+
+.status-ready {
+  @apply bg-orange-400 text-white;
+}
+
+.status-needs-inspection {
+  @apply bg-yellow-400 text-white;
+}
+
+.status-needs-repair {
+  @apply bg-orange-500 text-white;
+}
+
+.status-do-not-sail {
+  @apply bg-red-500 text-white;
+}
+
+.status-out-of-service {
+  @apply bg-gray-400 text-white;
+}

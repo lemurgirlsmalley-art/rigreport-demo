@@ -668,16 +668,25 @@ npm run lint         # Run ESLint
 ## Getting Help
 
 If stuck on implementation:
-1. Check the production RigReport codebase at `/Users/milliesmalley/REPO/RIGREPORT_GIT` for reference
+1. Check the production RigReport codebase for reference (see below)
 2. Review shadcn/ui documentation for component patterns
 3. Check TanStack Query docs for data fetching patterns
 4. Review Wouter docs for routing patterns
 
 ### Production RigReport Reference
 
-The demo mirrors the production RigReport design. Key reference files in the production codebase:
-- Design system colors and patterns
-- Component styling conventions
-- Status badge implementations
+The demo mirrors the production RigReport design. The production codebase is located at:
+
+```
+/Users/milliesmalley/REPO/RIGREPORT_GIT
+```
+
+Key reference areas in the production codebase:
+- **Design system**: Colors, typography, spacing conventions
+- **Components**: Status badges, cards, buttons, navigation patterns
+- **Styling**: Tailwind classes, color palette usage
+- **Layout**: Page structure, sidebar, responsive patterns
+
+When implementing new features or updating styles, always cross-reference the production codebase to ensure visual consistency.
 
 Remember: This is a **demo** - prioritize working features over perfection. The goal is to showcase RigReport's capabilities, not build a production system.

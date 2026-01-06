@@ -234,7 +234,9 @@ import { cn } from '@/lib/utils';
 
 ### Mock Data Store
 
-The `MockDataStore` class in `src/lib/mockDataStore.ts` handles all data operations:
+The `MockDataStore` class handles all data operations.
+
+**Source:** `src/lib/mockDataStore.ts`
 
 ```typescript
 class MockDataStore {
@@ -274,10 +276,11 @@ export const mockStore = new MockDataStore();
 
 ### Demo Authentication
 
-The demo auth system allows role switching without real authentication:
+The demo auth system allows role switching without real authentication.
+
+**Source:** `src/hooks/use-demo-auth.tsx`
 
 ```typescript
-// src/hooks/use-demo-auth.tsx
 
 const ROLE_PERMISSIONS = {
   admin: {
@@ -319,7 +322,9 @@ const ROLE_PERMISSIONS = {
 
 ### TanStack Query Usage
 
-Use TanStack Query for all data fetching, even though it's mocked:
+Use TanStack Query for all data fetching, even though it's mocked.
+
+**Source:** `src/lib/queryClient.ts` (setup), `src/hooks/use-boats.ts` (example)
 
 ```typescript
 // Fetching data
@@ -342,8 +347,9 @@ updateBoat.mutate({ id: boat.id, data: { status: 'OK' } });
 
 ### Routing with Wouter
 
+**Source:** `src/App.tsx`
+
 ```typescript
-// src/App.tsx
 import { Route, Switch } from 'wouter';
 
 function App() {
@@ -375,8 +381,9 @@ const { id } = useParams<{ id: string }>();
 
 ### Leaflet Map Setup
 
+**Source:** `src/pages/fleet-map.tsx`
+
 ```typescript
-// src/pages/fleet-map.tsx
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -416,48 +423,68 @@ function FleetMap() {
 
 ## Color Theme
 
-The app uses a nautical color palette:
+The app uses the RigReport design system with a nautical color palette. The design matches the production RigReport application.
 
-```typescript
-// tailwind.config.ts
-colors: {
-  primary: {
-    DEFAULT: '#0F2A4A',      // Navy blue
-    foreground: '#FFFFFF',
-  },
-  secondary: {
-    DEFAULT: '#16A085',      // Teal
-    foreground: '#FFFFFF',
-  },
-  accent: {
-    DEFAULT: '#F59E0B',      // Amber (warnings)
-    foreground: '#FFFFFF',
-  },
-  destructive: {
-    DEFAULT: '#DC2626',      // Red
-    foreground: '#FFFFFF',
-  },
-  muted: {
-    DEFAULT: '#F1F5F9',
-    foreground: '#64748B',
-  },
-}
-```
+### Primary Colors
+
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Navy | `#1f2937` | Primary buttons, sidebar background, badges |
+| Navy Hover | `#374151` | Button hover states |
+| Cyan | `#06B6D4` / `bg-cyan-500` | OK status, positive states |
+| Amber | `#F59E0B` / `bg-amber-500` | Needs inspection, warnings |
+| Orange | `#F97316` / `bg-orange-500` | Needs repair |
+| Red | `#DC2626` / `bg-red-500` | Do not sail, errors |
+| Gray | `#6B7280` / `bg-gray-500` | Out of service |
 
 ### Status Colors
 
+Defined in `src/lib/utils.ts`:
+
 ```typescript
+// See: src/lib/utils.ts - getStatusColor()
 function getStatusColor(status: BoatStatus): string {
   switch (status) {
-    case 'OK': return 'bg-secondary';           // Teal
-    case 'Needs inspection': return 'bg-accent'; // Amber
-    case 'Needs repair': return 'bg-orange-500';
-    case 'Do not sail': return 'bg-destructive'; // Red
-    case 'Out of service': return 'bg-gray-500';
-    default: return 'bg-gray-300';
+    case 'OK': return 'bg-cyan-500 text-white';
+    case 'Needs inspection': return 'bg-amber-500 text-white';
+    case 'Needs repair': return 'bg-orange-500 text-white';
+    case 'Do not sail': return 'bg-red-500 text-white';
+    case 'Out of service': return 'bg-gray-500 text-white';
+    default: return 'bg-gray-300 text-gray-800';
   }
 }
 ```
+
+### Button Styling
+
+Primary buttons use navy background with consistent styling:
+
+```typescript
+// Standard primary button
+<Button className="bg-[#1f2937] hover:bg-[#374151]">
+  Action
+</Button>
+```
+
+### Sidebar Design
+
+The sidebar (`src/components/Sidebar.tsx`) uses dark navy styling:
+- Background: `bg-[#1f2937]`
+- Logo: Cyan accent (`bg-cyan-500`)
+- Text: White with gray-400 for inactive items
+- Role badges: Purple (admin), Blue (coach), Green (volunteer), Orange (junior)
+
+### Key Source Files for Styling
+
+| File | Purpose |
+|------|---------|
+| `src/lib/utils.ts` | Status color functions (`getStatusColor`, `getStatusDotColor`) |
+| `src/components/Sidebar.tsx` | Navigation sidebar with role badges |
+| `src/components/BoatCard.tsx` | Fleet card with status badges |
+| `src/components/StatusBadge.tsx` | Reusable status badge component |
+| `src/components/EquipmentRow.tsx` | Equipment list item with status |
+| `src/components/MaintenanceItem.tsx` | Maintenance entry with severity colors |
+| `src/pages/fleet-map.tsx` | Map marker colors (lines 29-35) |
 
 ---
 
@@ -641,9 +668,16 @@ npm run lint         # Run ESLint
 ## Getting Help
 
 If stuck on implementation:
-1. Check the production RigReport codebase for reference
+1. Check the production RigReport codebase at `/Users/milliesmalley/REPO/RIGREPORT_GIT` for reference
 2. Review shadcn/ui documentation for component patterns
 3. Check TanStack Query docs for data fetching patterns
 4. Review Wouter docs for routing patterns
+
+### Production RigReport Reference
+
+The demo mirrors the production RigReport design. Key reference files in the production codebase:
+- Design system colors and patterns
+- Component styling conventions
+- Status badge implementations
 
 Remember: This is a **demo** - prioritize working features over perfection. The goal is to showcase RigReport's capabilities, not build a production system.

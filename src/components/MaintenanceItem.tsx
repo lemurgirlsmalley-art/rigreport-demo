@@ -13,13 +13,13 @@ interface MaintenanceItemProps {
 function getSeverityColor(severity: MaintenanceSeverity): string {
   switch (severity) {
     case 'High':
-      return 'bg-destructive text-destructive-foreground';
+      return 'bg-red-500 text-white';
     case 'Medium':
-      return 'bg-accent text-accent-foreground';
+      return 'bg-orange-500 text-white';
     case 'Low':
-      return 'bg-muted text-muted-foreground';
+      return 'bg-amber-500 text-white';
     default:
-      return 'bg-muted text-muted-foreground';
+      return 'bg-gray-500 text-white';
   }
 }
 
@@ -39,11 +39,11 @@ function getStatusIcon(status: MaintenanceStatus) {
 function getStatusColor(status: MaintenanceStatus): string {
   switch (status) {
     case 'Open':
-      return 'text-destructive';
+      return 'text-red-500';
     case 'In progress':
-      return 'text-accent';
+      return 'text-amber-500';
     case 'Resolved':
-      return 'text-secondary';
+      return 'text-cyan-500';
     default:
       return 'text-muted-foreground';
   }

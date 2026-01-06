@@ -12,9 +12,9 @@ interface EquipmentRowProps {
 function getEquipmentStatusColor(status: EquipmentStatus): string {
   switch (status) {
     case 'OK':
-      return 'bg-secondary text-secondary-foreground';
+      return 'bg-cyan-500 text-white';
     case 'Needs repair':
-      return 'bg-accent text-accent-foreground';
+      return 'bg-orange-500 text-white';
     case 'Out of service':
       return 'bg-gray-500 text-white';
     default:

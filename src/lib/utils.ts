@@ -15,13 +15,13 @@ export function formatDate(date: string | Date, formatStr: string = 'MMM d, yyyy
 export function getStatusColor(status: BoatStatus): string {
   switch (status) {
     case 'OK':
-      return 'bg-secondary text-secondary-foreground';
+      return 'bg-cyan-500 text-white';
     case 'Needs inspection':
-      return 'bg-accent text-accent-foreground';
+      return 'bg-amber-500 text-white';
     case 'Needs repair':
       return 'bg-orange-500 text-white';
     case 'Do not sail':
-      return 'bg-destructive text-destructive-foreground';
+      return 'bg-red-500 text-white';
     case 'Out of service':
       return 'bg-gray-500 text-white';
     default:
@@ -32,13 +32,13 @@ export function getStatusColor(status: BoatStatus): string {
 export function getStatusDotColor(status: BoatStatus): string {
   switch (status) {
     case 'OK':
-      return 'bg-secondary';
+      return 'bg-cyan-500';
     case 'Needs inspection':
-      return 'bg-accent';
+      return 'bg-amber-500';
     case 'Needs repair':
       return 'bg-orange-500';
     case 'Do not sail':
-      return 'bg-destructive';
+      return 'bg-red-500';
     case 'Out of service':
       return 'bg-gray-500';
     default:

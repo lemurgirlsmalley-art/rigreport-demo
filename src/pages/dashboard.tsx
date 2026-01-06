@@ -138,7 +138,7 @@ function QuickActionsCard() {
       </CardHeader>
       <CardContent className="space-y-2">
         <Link href="/report">
-          <Button className="w-full justify-start gap-2 h-10 bg-[#1e2a3b] hover:bg-[#2d3c4f] text-white">
+          <Button className="w-full justify-start gap-2 h-10 bg-[#1f2937] hover:bg-[#374151] text-white">
             <Plus className="h-4 w-4" />
             Log Boat Inspection
           </Button>
@@ -200,9 +200,9 @@ export function DashboardPage() {
             value={operationalBoats}
             subtitle="Ready to sail"
             icon={CheckCircle}
-            bgColor="bg-green-50"
-            iconBgColor="bg-green-100"
-            iconColor="text-green-500"
+            bgColor="bg-cyan-50"
+            iconBgColor="bg-cyan-100"
+            iconColor="text-cyan-500"
             isLoading={boatsLoading}
           />
           <StatCard

@@ -94,7 +94,7 @@ export function EquipmentPage() {
               Export
             </Button>
             {permissions.canAddBoats && (
-              <Button className="gap-2 bg-[#1e2a3b] hover:bg-[#2d3c4f]">
+              <Button className="gap-2 bg-[#1f2937] hover:bg-[#374151]">
                 <Plus className="h-4 w-4" />
                 Add Equipment
               </Button>

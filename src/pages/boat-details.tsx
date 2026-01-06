@@ -99,7 +99,7 @@ export function BoatDetailsPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <Badge className="bg-[#1e2a3b] text-white hover:bg-[#1e2a3b]">{boat.type}</Badge>
+              <Badge className="bg-[#1f2937] text-white hover:bg-[#1f2937]">{boat.type}</Badge>
               <Ship className="h-5 w-5 text-gray-400" />
             </div>
             <div className="flex items-center gap-3">
@@ -313,7 +313,7 @@ export function BoatDetailsPage() {
                   />
                 </div>
                 <div className="flex justify-end">
-                  <Button className="bg-[#1e2a3b] hover:bg-[#2d3c4f]">
+                  <Button className="bg-[#1f2937] hover:bg-[#374151]">
                     Save Log Entry
                   </Button>
                 </div>

@@ -188,7 +188,7 @@ export function ReportDamagePage() {
                         }}
                         className={`flex flex-col items-center justify-center gap-2 p-6 rounded-lg border-2 transition-colors ${
                           itemType === 'boat'
-                            ? 'border-[#1e2a3b] bg-[#1e2a3b] text-white'
+                            ? 'border-[#1f2937] bg-[#1f2937] text-white'
                             : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                         }`}
                       >
@@ -203,7 +203,7 @@ export function ReportDamagePage() {
                         }}
                         className={`flex flex-col items-center justify-center gap-2 p-6 rounded-lg border-2 transition-colors ${
                           itemType === 'equipment'
-                            ? 'border-[#1e2a3b] bg-[#1e2a3b] text-white'
+                            ? 'border-[#1f2937] bg-[#1f2937] text-white'
                             : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                         }`}
                       >
@@ -328,7 +328,7 @@ export function ReportDamagePage() {
                   {/* Submit */}
                   <Button
                     type="submit"
-                    className="w-full bg-[#1e2a3b] hover:bg-[#2d3c4f]"
+                    className="w-full bg-[#1f2937] hover:bg-[#374151]"
                     disabled={!isFormValid || isSubmitting || !permissions.canReportDamage}
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit Damage Report'}

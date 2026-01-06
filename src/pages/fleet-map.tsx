@@ -27,7 +27,7 @@ const ESRI_SATELLITE =
 
 // Status colors for markers
 const statusColors: Record<BoatStatus, string> = {
-  OK: '#16A085',
+  OK: '#06B6D4',
   'Needs inspection': '#F59E0B',
   'Needs repair': '#F97316',
   'Do not sail': '#DC2626',
@@ -76,7 +76,7 @@ function BoatMarker({ boat }: { boat: Boat }) {
           </div>
           <p className="text-sm text-muted-foreground mb-3">{boat.location}</p>
           <Link href={`/fleet/${boat.id}`}>
-            <Button size="sm" className="w-full">
+            <Button size="sm" className="w-full bg-[#1f2937] hover:bg-[#374151]">
               View Details
             </Button>
           </Link>

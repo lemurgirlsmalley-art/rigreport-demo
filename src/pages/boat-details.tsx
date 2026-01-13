@@ -26,34 +26,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useBoat, useUpdateBoat, useDeleteBoat } from '@/hooks/use-boats';
+import { useBoat } from '@/hooks/use-boats';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { useDemoAuth } from '@/hooks/use-demo-auth';
-import { formatDate, getOrganizationName } from '@/lib/utils';
-import type { BoatStatus } from '@/lib/types';
+import { useFeatureModal } from '@/hooks/use-feature-modal';
+import { formatDate, getOrganizationName, getOrganizationLogo } from '@/lib/utils';
 
 export function BoatDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { boat, isLoading } = useBoat(id);
   const { maintenance, isLoading: maintenanceLoading } = useMaintenance(id);
-  const updateBoat = useUpdateBoat();
-  const deleteBoat = useDeleteBoat();
   const { permissions } = useDemoAuth();
-
-  const handleStatusChange = (newStatus: BoatStatus) => {
-    if (id) {
-      updateBoat.mutate({ id, data: { status: newStatus } });
-    }
-  };
-
-  const handleDelete = () => {
-    if (id && window.confirm('Are you sure you want to delete this boat? This cannot be undone.')) {
-      deleteBoat.mutate(id, {
-        onSuccess: () => setLocation('/fleet'),
-      });
-    }
-  };
+  const { showFeatureModal } = useFeatureModal();
 
   if (isLoading) {
     return (
@@ -99,7 +84,12 @@ export function BoatDetailsPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <Badge className="bg-[#1f2937] text-white hover:bg-[#1f2937]">{boat.type}</Badge>
+              <img
+                src={getOrganizationLogo(boat.organization)}
+                alt={getOrganizationName(boat.organization)}
+                className="h-8 w-auto"
+              />
+              <Badge variant="outline" className="bg-white">{boat.type}</Badge>
               <Ship className="h-5 w-5 text-gray-400" />
             </div>
             <div className="flex items-center gap-3">
@@ -115,7 +105,7 @@ export function BoatDetailsPage() {
 
             {/* Action Buttons */}
             {permissions.canReportDamage && (
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2" onClick={() => showFeatureModal('flagIssue')}>
                 <Flag className="h-4 w-4" />
                 Flag Issue
               </Button>
@@ -123,20 +113,20 @@ export function BoatDetailsPage() {
             {permissions.canChangeStatus && (
               <Button
                 className="gap-2 bg-green-500 hover:bg-green-600 text-white"
-                onClick={() => handleStatusChange('OK')}
+                onClick={() => showFeatureModal('markBoatOK')}
               >
                 <CheckCircle className="h-4 w-4" />
                 Mark OK
               </Button>
             )}
             {permissions.canEdit && (
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2" onClick={() => showFeatureModal('editBoat')}>
                 <Edit className="h-4 w-4" />
                 Edit Details
               </Button>
             )}
             {permissions.canDelete && (
-              <Button variant="outline" size="icon" onClick={handleDelete}>
+              <Button variant="outline" size="icon" onClick={() => showFeatureModal('deleteBoat')}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             )}
@@ -313,7 +303,7 @@ export function BoatDetailsPage() {
                   />
                 </div>
                 <div className="flex justify-end">
-                  <Button className="bg-[#1f2937] hover:bg-[#374151]">
+                  <Button onClick={() => showFeatureModal('saveLogEntry')}>
                     Save Log Entry
                   </Button>
                 </div>

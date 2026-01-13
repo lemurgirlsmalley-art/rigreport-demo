@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { useBoats } from '@/hooks/use-boats';
 import { useDemoAuth } from '@/hooks/use-demo-auth';
+import { useFeatureModal } from '@/hooks/use-feature-modal';
 import type { BoatStatus, BoatType, Organization } from '@/lib/types';
 
 const STATUSES: BoatStatus[] = [
@@ -37,11 +38,12 @@ const BOAT_TYPES: BoatType[] = [
   'Other',
 ];
 
-const ORGANIZATIONS: Organization[] = ['ACS', 'ASC', 'SOA'];
+const ORGANIZATIONS: Organization[] = ['EO', 'YOH', 'DSC'];
 
 export function FleetPage() {
   const { boats, isLoading } = useBoats();
   const { permissions } = useDemoAuth();
+  const { showFeatureModal } = useFeatureModal();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<BoatStatus | 'all'>('all');
@@ -101,12 +103,12 @@ export function FleetPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => showFeatureModal('exportData')}>
               <Download className="h-4 w-4" />
               Export
             </Button>
             {permissions.canAddBoats && (
-              <Button className="gap-2 bg-[#1f2937] hover:bg-[#374151] text-white">
+              <Button className="gap-2" onClick={() => showFeatureModal('addBoat')}>
                 <Plus className="h-4 w-4" />
                 Add Boat
               </Button>

@@ -1,19 +1,27 @@
 import { useState } from 'react';
-import { Clock, CheckCircle, Shield, Users } from 'lucide-react';
+import { Clock, CheckCircle, Shield, Users, Edit, Trash2, Check, X } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDemoAuth } from '@/hooks/use-demo-auth';
+import { useFeatureModal } from '@/hooks/use-feature-modal';
 
 // Mock users for demo
 const MOCK_USERS = [
-  { id: '1', name: 'Millie Smalley', email: 'millie@example.com', role: 'admin', status: 'active', avatar: 'M' },
-  { id: '2', name: 'Daniel Fodera', email: 'daniel@example.com', role: 'coach', status: 'active', avatar: 'D' },
-  { id: '3', name: 'Sarah Chen', email: 'sarah@example.com', role: 'coach', status: 'active', avatar: 'S' },
-  { id: '4', name: 'Mike Wilson', email: 'mike@example.com', role: 'volunteer', status: 'active', avatar: 'M' },
-  { id: '5', name: 'Emma Davis', email: 'emma@example.com', role: 'volunteer', status: 'active', avatar: 'E' },
-  { id: '6', name: 'Alex Johnson', email: 'alex@example.com', role: 'junior_sailor', status: 'active', avatar: 'A' },
-  { id: '7', name: 'Jamie Lee', email: 'jamie@example.com', role: 'junior_sailor', status: 'active', avatar: 'J' },
+  { id: '1', name: 'Sarah Chen', email: 'sarah@example.com', role: 'admin', status: 'active', avatar: 'S' },
+  { id: '2', name: 'Mike Wilson', email: 'mike@example.com', role: 'coach', status: 'active', avatar: 'M' },
+  { id: '3', name: 'Emma Davis', email: 'emma@example.com', role: 'coach', status: 'active', avatar: 'E' },
+  { id: '4', name: 'Alex Johnson', email: 'alex@example.com', role: 'volunteer', status: 'active', avatar: 'A' },
+  { id: '5', name: 'Jamie Lee', email: 'jamie@example.com', role: 'volunteer', status: 'active', avatar: 'J' },
+  { id: '6', name: 'Taylor Smith', email: 'taylor@example.com', role: 'junior_sailor', status: 'active', avatar: 'T' },
+  { id: '7', name: 'Jordan Brown', email: 'jordan@example.com', role: 'junior_sailor', status: 'active', avatar: 'J' },
+];
+
+// Mock pending users for demo
+const MOCK_PENDING_USERS = [
+  { id: 'p1', name: 'Chris Martinez', email: 'chris.martinez@example.com', role: 'coach', requestedAt: '2024-12-06T14:30:00Z', avatar: 'C' },
+  { id: 'p2', name: 'Riley Thompson', email: 'riley.t@example.com', role: 'admin', requestedAt: '2024-12-05T09:15:00Z', avatar: 'R' },
 ];
 
 function StatCard({
@@ -48,11 +56,22 @@ function StatCard({
 
 export function UserManagementPage() {
   const { permissions } = useDemoAuth();
+  const { showFeatureModal } = useFeatureModal();
   const [activeTab, setActiveTab] = useState('pending');
 
-  const pendingApprovals = 0;
+  const pendingApprovals = MOCK_PENDING_USERS.length;
   const activeUsers = MOCK_USERS.length;
   const admins = MOCK_USERS.filter(u => u.role === 'admin').length;
+
+  const formatTimeAgo = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    return `${diffDays} days ago`;
+  };
 
   if (!permissions.canManageUsers) {
     return (
@@ -130,7 +149,55 @@ export function UserManagementPage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {/* Pending users would go here */}
+                    {MOCK_PENDING_USERS.map((user) => (
+                      <div
+                        key={user.id}
+                        className="flex items-center justify-between p-4 rounded-lg border border-orange-200 bg-orange-50/50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 text-white font-semibold">
+                            {user.avatar}
+                          </div>
+                          <div>
+                            <p className="font-medium">{user.name}</p>
+                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right mr-2">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              user.role === 'admin'
+                                ? 'bg-purple-100 text-purple-700'
+                                : user.role === 'coach'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              Requested: {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                            </span>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {formatTimeAgo(user.requestedAt)}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 gap-1"
+                            onClick={() => showFeatureModal('editUserRole')}
+                          >
+                            <Check className="h-4 w-4" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-red-300 text-red-600 hover:bg-red-50 gap-1"
+                            onClick={() => showFeatureModal('deleteUser')}
+                          >
+                            <X className="h-4 w-4" />
+                            Deny
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </TabsContent>
@@ -151,7 +218,7 @@ export function UserManagementPage() {
                           <p className="text-sm text-muted-foreground">{user.email}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           user.role === 'admin'
                             ? 'bg-purple-100 text-purple-700'
@@ -166,6 +233,12 @@ export function UserManagementPage() {
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
                           Active
                         </span>
+                        <Button variant="ghost" size="icon" onClick={() => showFeatureModal('editUserRole')}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => showFeatureModal('deleteUser')}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   ))}

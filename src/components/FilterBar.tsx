@@ -51,7 +51,7 @@ const BOAT_TYPES: BoatType[] = [
   'Other',
 ];
 
-const ORGANIZATIONS: Organization[] = ['ACS', 'ASC', 'SOA'];
+const ORGANIZATIONS: Organization[] = ['EO', 'YOH', 'DSC'];
 
 export function FilterBar({
   searchQuery,

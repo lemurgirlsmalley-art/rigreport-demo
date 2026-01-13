@@ -30,7 +30,7 @@ export type BoatType =
   | 'Other';
 
 // Organization types
-export type Organization = 'ACS' | 'ASC' | 'SOA';
+export type Organization = 'EO' | 'YOH' | 'DSC';
 
 // Maintenance related types
 export type MaintenanceCategory =
@@ -78,6 +78,7 @@ export interface Boat {
   registrationExpiry?: string;
   lastInspection?: string;
   notes?: string;
+  imageUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -88,8 +89,10 @@ export interface Equipment {
   type: EquipmentType;
   status: EquipmentStatus;
   organization: Organization;
+  storageLocation: string;
   serialNumber?: string;
   assignedBoatId?: string;
+  value?: number;
   lastInspection?: string;
   notes?: string;
   createdAt: string;

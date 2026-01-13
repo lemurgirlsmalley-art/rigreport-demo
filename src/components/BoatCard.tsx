@@ -2,7 +2,7 @@ import { Link } from 'wouter';
 import { MapPin, Calendar, ArrowRight, Sailboat } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { cn, formatDate } from '@/lib/utils';
+import { cn, formatDate, getOrganizationLogo, getOrganizationName } from '@/lib/utils';
 import type { Boat, BoatStatus } from '@/lib/types';
 
 interface BoatCardProps {
@@ -52,14 +52,29 @@ export function BoatCard({ boat, className, showReadyBadge = false }: BoatCardPr
     <Link href={`/fleet/${boat.id}`}>
       <Card
         className={cn(
-          'cursor-pointer transition-all hover:shadow-md shadow-sm bg-card overflow-hidden border-t-4 border-t-transparent hover:border-t-primary flex flex-col h-full',
+          'cursor-pointer transition-all hover:shadow-md shadow-sm bg-card overflow-hidden border-t-4 border-t-transparent hover:border-t-primary flex flex-col h-full group',
           className
         )}
       >
+        {/* Boat Image */}
+        {boat.imageUrl && (
+          <div className="h-48 w-full overflow-hidden bg-muted">
+            <img
+              src={boat.imageUrl}
+              alt={boat.displayName}
+              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+            />
+          </div>
+        )}
         <CardContent className="p-5">
-          {/* Header with type badge and status */}
+          {/* Header with org logo, type badge and status */}
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2">
+              <img
+                src={getOrganizationLogo(boat.organization)}
+                alt={getOrganizationName(boat.organization)}
+                className="h-6 w-auto"
+              />
               <Badge variant="outline" className="text-xs font-normal bg-white border-input text-foreground">
                 {typeLabel}
               </Badge>

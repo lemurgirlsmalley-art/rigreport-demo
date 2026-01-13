@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
-import { Plus, Package, Search, Download } from 'lucide-react';
+import { Plus, Package, Search, Loader2 } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
-import { EquipmentRow } from '@/components/EquipmentRow';
+import { EquipmentCard } from '@/components/EquipmentCard';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/select';
 import { useEquipment } from '@/hooks/use-equipment';
 import { useDemoAuth } from '@/hooks/use-demo-auth';
-import type { EquipmentType, EquipmentStatus, Organization } from '@/lib/types';
+import { useFeatureModal } from '@/hooks/use-feature-modal';
+import type { EquipmentType, EquipmentStatus } from '@/lib/types';
 
 const EQUIPMENT_TYPES: EquipmentType[] = [
   'Trailer',
@@ -28,39 +29,21 @@ const EQUIPMENT_TYPES: EquipmentType[] = [
 
 const EQUIPMENT_STATUSES: EquipmentStatus[] = ['OK', 'Needs repair', 'Out of service'];
 
-const ORGANIZATIONS: Organization[] = ['ACS', 'ASC', 'SOA'];
-
 export function EquipmentPage() {
   const { equipment, isLoading } = useEquipment();
   const { permissions } = useDemoAuth();
+  const { showFeatureModal } = useFeatureModal();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<EquipmentType | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<EquipmentStatus | 'all'>('all');
-  const [orgFilter, setOrgFilter] = useState<Organization | 'all'>('all');
-
-  const hasActiveFilters =
-    searchQuery !== '' ||
-    typeFilter !== 'all' ||
-    statusFilter !== 'all' ||
-    orgFilter !== 'all';
-
-  const clearFilters = () => {
-    setSearchQuery('');
-    setTypeFilter('all');
-    setStatusFilter('all');
-    setOrgFilter('all');
-  };
 
   const filteredEquipment = useMemo(() => {
     return equipment.filter((item) => {
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const matchesSearch =
-          item.name.toLowerCase().includes(query) ||
-          item.type.toLowerCase().includes(query) ||
-          (item.serialNumber?.toLowerCase().includes(query) ?? false);
+        const matchesSearch = item.name.toLowerCase().includes(query);
         if (!matchesSearch) return false;
       }
 
@@ -70,145 +53,99 @@ export function EquipmentPage() {
       // Status filter
       if (statusFilter !== 'all' && item.status !== statusFilter) return false;
 
-      // Organization filter
-      if (orgFilter !== 'all' && item.organization !== orgFilter) return false;
-
       return true;
     });
-  }, [equipment, searchQuery, typeFilter, statusFilter, orgFilter]);
+  }, [equipment, searchQuery, typeFilter, statusFilter]);
 
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="flex flex-col gap-6">
         {/* Page Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Equipment</h1>
-            <p className="text-muted-foreground mt-1">
-              {equipment.length} items in inventory
-            </p>
+            <h1 className="text-3xl font-heading font-bold text-primary tracking-tight">Equipment</h1>
+            <p className="text-muted-foreground">Manage trailers, sails, rigging, and other assets.</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
+          <div className="flex gap-2">
             {permissions.canAddBoats && (
-              <Button className="gap-2 bg-[#1f2937] hover:bg-[#374151]">
-                <Plus className="h-4 w-4" />
+              <Button size="sm" onClick={() => showFeatureModal('addEquipment')}>
+                <Plus className="h-4 w-4 mr-1" />
                 Add Equipment
               </Button>
             )}
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search equipment..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-white"
-            />
-          </div>
+        {/* Filters Card */}
+        <Card className="shadow-sm">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="relative md:col-span-2">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search equipment..."
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value as EquipmentStatus | 'all')}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {EQUIPMENT_STATUSES.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={typeFilter}
+                onValueChange={(value) => setTypeFilter(value as EquipmentType | 'all')}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Equipment Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {EQUIPMENT_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="flex flex-wrap gap-2">
-            <Select
-              value={orgFilter}
-              onValueChange={(value) => setOrgFilter(value as Organization | 'all')}
-            >
-              <SelectTrigger className="w-[160px] bg-white">
-                <SelectValue placeholder="All Organizations" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Organizations</SelectItem>
-                {ORGANIZATIONS.map((org) => (
-                  <SelectItem key={org} value={org}>
-                    {org}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => setStatusFilter(value as EquipmentStatus | 'all')}
-            >
-              <SelectTrigger className="w-[140px] bg-white">
-                <SelectValue placeholder="All Statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                {EQUIPMENT_STATUSES.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {status}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={typeFilter}
-              onValueChange={(value) => setTypeFilter(value as EquipmentType | 'all')}
-            >
-              <SelectTrigger className="w-[130px] bg-white">
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {EQUIPMENT_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                Clear Filters
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Equipment List */}
+        {/* Equipment Grid */}
         {isLoading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 w-full" />
-            ))}
-          </div>
-        ) : filteredEquipment.length === 0 ? (
-          <div className="text-center py-12">
-            <Package className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium">No equipment found</h3>
-            <p className="text-muted-foreground mt-1">
-              {hasActiveFilters
-                ? 'Try adjusting your filters'
-                : 'Add equipment to get started'}
-            </p>
-            {hasActiveFilters && (
-              <Button variant="outline" className="mt-4" onClick={clearFilters}>
-                Clear Filters
-              </Button>
-            )}
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <>
-            {hasActiveFilters && (
-              <p className="text-sm text-muted-foreground">
-                Showing {filteredEquipment.length} of {equipment.length} items
-              </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredEquipment.map((item) => (
+              <EquipmentCard
+                key={item.id}
+                equipment={item}
+                onClick={() => showFeatureModal('editEquipment')}
+              />
+            ))}
+            {filteredEquipment.length === 0 && (
+              <div className="col-span-full text-center py-12">
+                <Package className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+                <p className="text-muted-foreground">No equipment found matching your filters.</p>
+              </div>
             )}
-            <div className="space-y-3">
-              {filteredEquipment.map((item) => (
-                <EquipmentRow key={item.id} equipment={item} />
-              ))}
-            </div>
-          </>
+          </div>
         )}
       </div>
     </AppShell>

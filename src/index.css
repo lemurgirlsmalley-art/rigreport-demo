@@ -1,94 +1,310 @@
+/*
+ * ==========================================================================
+ * RigReport Design System
+ * ==========================================================================
+ *
+ * This file exactly matches the production RigReport application.
+ * Built with Tailwind CSS v4 using inline @theme definitions.
+ *
+ * Structure:
+ * 1. Tailwind Import
+ * 2. Dark Mode Variant
+ * 3. CSS Custom Properties (Light Mode)
+ * 4. CSS Custom Properties (Dark Mode)
+ * 5. Tailwind @theme (Maps variables to utilities)
+ * 6. Base Layer (Typography, defaults)
+ * 7. Components Layer
+ * 8. Utilities Layer
+ * ==========================================================================
+ */
+
 @import "tailwindcss";
 
-@theme {
-  /* RigReport Production Color Palette */
+/* ==========================================================================
+   Dark Mode Variant
+   ========================================================================== */
 
-  /* Primary - Deep Navy */
-  --color-primary: hsl(222 47% 11%);
-  --color-primary-foreground: hsl(210 40% 98%);
+@custom-variant dark (&:is(.dark *));
 
-  /* Secondary - Teal/Cyan */
-  --color-secondary: hsl(187 100% 30%);
-  --color-secondary-foreground: hsl(210 40% 98%);
+/* ==========================================================================
+   CSS Custom Properties - Light Mode (Default)
 
-  /* Accent - Warm Orange */
-  --color-accent: hsl(35 90% 50%);
-  --color-accent-foreground: hsl(222 47% 11%);
+   All colors stored as HSL values without hsl() wrapper.
+   Format: "H S% L%" (e.g., "222 47% 11%")
+   ========================================================================== */
 
-  /* Destructive - Red */
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(210 40% 98%);
+:root {
+  /* Border Radius Base */
+  --radius: 0.5rem;
+
+  /* Background & Surface Colors */
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+
+  /* Primary - Deep Navy Blue */
+  --primary: 222 47% 11%;
+  --primary-foreground: 210 40% 98%;
+
+  /* Secondary - Teal/Cyan (Nautical) */
+  --secondary: 187 100% 30%;
+  --secondary-foreground: 210 40% 98%;
+
+  /* Muted - Subtle backgrounds */
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215 16% 47%;
+
+  /* Accent - Warm Orange (Maritime signals) */
+  --accent: 35 90% 50%;
+  --accent-foreground: 222 47% 11%;
+
+  /* Destructive - Red for errors/warnings */
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+
+  /* UI Element Colors */
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 222 47% 11%;
+
+  /* Chart Colors (Data Visualization) */
+  --chart-1: 222 47% 11%;
+  --chart-2: 187 100% 42%;
+  --chart-3: 35 90% 50%;
+  --chart-4: 210 90% 60%;
+  --chart-5: 45 90% 60%;
+
+  /* Sidebar Colors */
+  --sidebar: 222 47% 11%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-primary: 187 100% 42%;
+  --sidebar-primary-foreground: 222 47% 11%;
+  --sidebar-accent: 217 33% 17%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 217 33% 17%;
+  --sidebar-ring: 187 100% 42%;
+}
+
+/* ==========================================================================
+   CSS Custom Properties - Dark Mode
+
+   Activated by adding .dark class to html or body element.
+   Primary and secondary colors are swapped for better contrast.
+   ========================================================================== */
+
+.dark {
+  /* Background & Surface Colors */
+  --background: 222 47% 11%;
+  --foreground: 210 40% 98%;
+  --card: 217 33% 17%;
+  --card-foreground: 210 40% 98%;
+  --popover: 217 33% 17%;
+  --popover-foreground: 210 40% 98%;
+
+  /* Primary - Bright Teal (swapped for contrast) */
+  --primary: 187 100% 42%;
+  --primary-foreground: 222 47% 11%;
+
+  /* Secondary - Light (swapped for contrast) */
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222 47% 11%;
 
   /* Muted */
-  --color-muted: hsl(210 40% 96.1%);
-  --color-muted-foreground: hsl(215 16% 47%);
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 65%;
 
-  /* Background & Foreground */
-  --color-background: hsl(210 40% 98%);
-  --color-foreground: hsl(222 47% 11%);
+  /* Accent - Same Orange */
+  --accent: 35 90% 50%;
+  --accent-foreground: 222 47% 11%;
 
-  /* Card */
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(222 47% 11%);
+  /* Destructive - Darker Red for dark backgrounds */
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
 
-  /* Popover */
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(222 47% 11%);
+  /* UI Element Colors */
+  --border: 217 33% 17%;
+  --input: 217 33% 17%;
+  --ring: 187 100% 42%;
 
-  /* Border & Input */
-  --color-border: hsl(214 32% 91%);
-  --color-input: hsl(214 32% 91%);
-  --color-ring: hsl(222 47% 11%);
+  /* Chart Colors (Dark Mode) */
+  --chart-1: 187 100% 42%;
+  --chart-2: 210 90% 60%;
+  --chart-3: 35 90% 50%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 340 75% 55%;
 
-  /* Sidebar */
-  --color-sidebar: hsl(222 47% 11%);
-  --color-sidebar-foreground: hsl(210 40% 98%);
-  --color-sidebar-primary: hsl(187 100% 42%);
-  --color-sidebar-accent: hsl(217 33% 17%);
-  --color-sidebar-border: hsl(217 33% 17%);
+  /* Sidebar Colors */
+  --sidebar: 217 33% 13%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-primary: 187 100% 42%;
+  --sidebar-primary-foreground: 222 47% 11%;
+  --sidebar-accent: 217 33% 17%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 217 33% 17%;
+  --sidebar-ring: 187 100% 42%;
+}
 
-  /* Chart Colors */
-  --color-chart-1: hsl(222 47% 11%);
-  --color-chart-2: hsl(187 100% 42%);
-  --color-chart-3: hsl(35 90% 50%);
-  --color-chart-4: hsl(210 90% 60%);
-  --color-chart-5: hsl(45 90% 60%);
+/* ==========================================================================
+   Tailwind @theme
 
-  /* Typography */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-heading: 'Montserrat', system-ui, -apple-system, sans-serif;
+   Maps CSS custom properties to Tailwind utility classes.
+   This enables: bg-primary, text-muted-foreground, border-border, etc.
+   ========================================================================== */
 
-  /* Border Radius */
-  --radius: 0.5rem;
+@theme {
+  /* Typography - Font Families */
+  --font-sans: 'Inter', sans-serif;
+  --font-heading: 'Montserrat', sans-serif;
+
+  /* Border Radius Scale */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* Core Colors */
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  /* Card Colors */
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  /* Popover Colors */
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  /* Primary Colors */
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  /* Secondary Colors */
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  /* Muted Colors */
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  /* Accent Colors */
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  /* Destructive Colors */
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  /* UI Element Colors */
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  /* Chart Colors */
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+
+  /* Sidebar Colors */
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
 }
 
+/* ==========================================================================
+   Base Layer
+
+   Global element defaults and typography rules.
+   ========================================================================== */
+
 @layer base {
+  /* Default border color for all elements */
   * {
     @apply border-border;
   }
 
+  /* Root element defaults */
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Body defaults */
   body {
     @apply bg-background text-foreground font-sans antialiased;
     margin: 0;
     min-height: 100vh;
+    line-height: 1.5;
   }
 
+  /* Root container */
   #root {
     min-height: 100vh;
   }
 
-  /* Headings use Montserrat */
+  /* Heading Typography - Uses Montserrat */
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-heading);
-    @apply font-bold tracking-tight;
+    @apply font-heading font-bold tracking-tight;
+  }
+
+  /* Focus ring styling */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Selection styling */
+  ::selection {
+    @apply bg-primary/20 text-foreground;
   }
 }
 
+/* ==========================================================================
+   Components Layer
+
+   Reusable component styles.
+   ========================================================================== */
+
+@layer components {
+  /* Status Badge Classes - Matching Production RigReport */
+  .status-ok,
+  .status-ready {
+    @apply bg-secondary text-secondary-foreground border border-secondary;
+  }
+
+  .status-needs-inspection {
+    @apply bg-accent text-accent-foreground border border-accent;
+  }
+
+  .status-needs-repair {
+    @apply bg-orange-500 text-white border border-orange-600;
+  }
+
+  .status-do-not-sail {
+    @apply bg-destructive text-destructive-foreground border border-destructive;
+  }
+
+  .status-out-of-service {
+    @apply bg-muted text-muted-foreground border border-border;
+  }
+}
+
+/* ==========================================================================
+   Utilities Layer
+
+   Custom utility classes.
+   ========================================================================== */
+
 @layer utilities {
+  /* Hide scrollbar but allow scrolling */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -97,29 +313,343 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Text balance for better typography */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Truncate with ellipsis */
+  .truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .truncate-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }
 
-/* Status badge colors matching production RigReport */
-.status-ok {
-  @apply bg-secondary text-white border border-secondary;
+/* ==========================================================================
+   Leaflet Map Custom Markers
+
+   Reset default Leaflet icon styles for custom boat markers.
+   ========================================================================== */
+
+.custom-boat-marker,
+.custom-cluster-marker {
+  background: transparent !important;
+  border: none !important;
 }
 
-.status-ready {
-  @apply bg-secondary text-white border border-secondary;
+.custom-boat-marker > div,
+.custom-cluster-marker > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.status-needs-inspection {
-  @apply bg-accent text-accent-foreground border border-accent;
+/* Leaflet popup styling */
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  padding: 0;
 }
 
-.status-needs-repair {
-  @apply bg-orange-500 text-white border border-orange-600;
+.leaflet-popup-content {
+  margin: 12px;
 }
 
-.status-do-not-sail {
-  @apply bg-destructive text-destructive-foreground border border-destructive;
+/* ==========================================================================
+   Landing Page - Maritime Design System
+
+   A distinctive, refined visual identity inspired by:
+   - Well-made sailing instruments
+   - Laminated regatta clipboards
+   - Calm harbor offices
+   ========================================================================== */
+
+/* Landing page color palette */
+:root {
+  --landing-navy: 222 47% 11%;
+  --landing-navy-deep: 222 50% 8%;
+  --landing-midnight: 220 45% 6%;
+  --landing-sailcloth: 45 30% 96%;
+  --landing-cream: 40 33% 94%;
+  --landing-teal: 180 35% 45%;
+  --landing-teal-muted: 175 25% 55%;
+  --landing-sea-glass: 170 30% 70%;
+  --landing-brass: 38 70% 50%;
+  --landing-rope: 28 45% 55%;
+  --landing-chart-line: 200 15% 75%;
 }
 
-.status-out-of-service {
-  @apply bg-muted text-muted-foreground border border-border;
+/* Subtle paper/sailcloth texture overlay */
+.landing-texture {
+  position: relative;
+}
+
+.landing-texture::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.4;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 150px 150px;
+  mix-blend-mode: overlay;
+}
+
+/* Soft gradient backgrounds */
+.landing-gradient-hero {
+  background: linear-gradient(
+    180deg,
+    hsl(var(--landing-sailcloth)) 0%,
+    hsl(45 25% 93%) 50%,
+    hsl(200 20% 92%) 100%
+  );
+}
+
+.landing-gradient-section-alt {
+  background: linear-gradient(
+    180deg,
+    hsl(200 20% 92%) 0%,
+    hsl(var(--landing-cream)) 100%
+  );
+}
+
+.landing-gradient-navy {
+  background: linear-gradient(
+    180deg,
+    hsl(var(--landing-navy)) 0%,
+    hsl(var(--landing-navy-deep)) 100%
+  );
+}
+
+/* Chart-inspired horizontal rule */
+.landing-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--landing-chart-line)) 20%,
+    hsl(var(--landing-chart-line)) 80%,
+    transparent 100%
+  );
+}
+
+/* Coordinate/grid reference style labels */
+.landing-label {
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: hsl(var(--landing-teal-muted));
+}
+
+/* Log entry / status tag motif */
+.landing-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 2px;
+  border: 1px solid hsl(var(--landing-chart-line));
+  background: hsl(var(--landing-sailcloth) / 0.8);
+  color: hsl(var(--landing-navy));
+}
+
+/* Static info panel - no hover effects */
+.landing-panel {
+  background: hsl(0 0% 100% / 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid hsl(var(--landing-chart-line));
+  border-radius: 4px;
+  box-shadow:
+    0 1px 2px hsl(var(--landing-navy) / 0.04),
+    0 2px 8px hsl(var(--landing-navy) / 0.04),
+    inset 0 1px 0 hsl(0 0% 100% / 0.6);
+}
+
+/* Interactive panel - with hover effects */
+.landing-panel-interactive {
+  background: hsl(0 0% 100% / 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid hsl(var(--landing-chart-line));
+  border-radius: 4px;
+  box-shadow:
+    0 1px 2px hsl(var(--landing-navy) / 0.04),
+    0 4px 12px hsl(var(--landing-navy) / 0.06),
+    inset 0 1px 0 hsl(0 0% 100% / 0.6);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.landing-panel-interactive:hover {
+  box-shadow:
+    0 2px 4px hsl(var(--landing-navy) / 0.06),
+    0 8px 24px hsl(var(--landing-navy) / 0.1),
+    inset 0 1px 0 hsl(0 0% 100% / 0.6);
+  transform: translateY(-2px);
+  border-color: hsl(var(--landing-teal) / 0.4);
+}
+
+/* Demo CTA - tactile button with depth */
+.landing-cta-primary {
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    hsl(var(--landing-teal)) 0%,
+    hsl(175 35% 38%) 100%
+  );
+  color: white;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: none;
+  border-radius: 4px;
+  box-shadow:
+    0 1px 0 hsl(175 35% 50% / 0.3) inset,
+    0 -1px 0 hsl(175 40% 30% / 0.3) inset,
+    0 4px 12px hsl(var(--landing-navy) / 0.2),
+    0 2px 4px hsl(var(--landing-navy) / 0.1);
+  transition: all 0.2s ease;
+}
+
+.landing-cta-primary:hover {
+  background: linear-gradient(
+    180deg,
+    hsl(178 38% 48%) 0%,
+    hsl(var(--landing-teal)) 100%
+  );
+  box-shadow:
+    0 1px 0 hsl(175 35% 55% / 0.4) inset,
+    0 -1px 0 hsl(175 40% 30% / 0.3) inset,
+    0 6px 20px hsl(var(--landing-navy) / 0.25),
+    0 3px 6px hsl(var(--landing-navy) / 0.15);
+  transform: translateY(-1px);
+}
+
+.landing-cta-primary:active {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 0 hsl(175 35% 45% / 0.2) inset,
+    0 -1px 0 hsl(175 40% 30% / 0.4) inset,
+    0 2px 6px hsl(var(--landing-navy) / 0.15);
+}
+
+/* Demo frame - mock browser window */
+.landing-demo-frame {
+  position: relative;
+  background: hsl(var(--landing-navy-deep));
+  border-radius: 8px;
+  padding: 3px;
+  box-shadow:
+    0 0 0 1px hsl(var(--landing-navy) / 0.2),
+    0 25px 50px -12px hsl(var(--landing-navy) / 0.35),
+    0 0 60px hsl(var(--landing-teal) / 0.1);
+}
+
+.landing-demo-frame::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 9px;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    hsl(var(--landing-teal) / 0.3) 0%,
+    transparent 50%,
+    hsl(var(--landing-brass) / 0.2) 100%
+  );
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+
+/* Browser chrome dots */
+.landing-demo-chrome {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: hsl(var(--landing-navy));
+  border-radius: 6px 6px 0 0;
+}
+
+.landing-demo-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  opacity: 0.6;
+}
+
+.landing-demo-dot-red { background: #ff5f57; }
+.landing-demo-dot-yellow { background: #ffbd2e; }
+.landing-demo-dot-green { background: #28c840; }
+
+/* Nautical icon style */
+.landing-icon {
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Section with asymmetric layout hints */
+.landing-section {
+  position: relative;
+}
+
+.landing-section::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--landing-chart-line)),
+    transparent
+  );
+}
+
+/* Coordinate display style */
+.landing-coords {
+  font-family: var(--font-sans);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: hsl(var(--landing-chart-line));
+}
+
+/* Brass/warm accent */
+.landing-accent-warm {
+  color: hsl(var(--landing-brass));
+}
+
+/* Animation - gentle water/wind motion */
+@keyframes landing-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.landing-float {
+  animation: landing-float 4s ease-in-out infinite;
+}
+
+/* Subtle glow for emphasis */
+.landing-glow {
+  box-shadow: 0 0 40px hsl(var(--landing-teal) / 0.15);
 }

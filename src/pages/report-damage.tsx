@@ -1,14 +1,12 @@
 import { useState } from 'react';
-import { AlertTriangle, Ship, Package, Wrench } from 'lucide-react';
+import { AlertTriangle, Ship, Package, Wrench, Settings } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
-import { MaintenanceItem } from '@/components/MaintenanceItem';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -18,8 +16,9 @@ import {
 } from '@/components/ui/select';
 import { useBoats, useUpdateBoat } from '@/hooks/use-boats';
 import { useEquipment } from '@/hooks/use-equipment';
-import { useMaintenance, useCreateMaintenance } from '@/hooks/use-maintenance';
+import { useCreateMaintenance } from '@/hooks/use-maintenance';
 import { useDemoAuth } from '@/hooks/use-demo-auth';
+import { useFeatureModal } from '@/hooks/use-feature-modal';
 import { toast } from '@/hooks/use-toast';
 import type {
   MaintenanceCategory,
@@ -50,15 +49,27 @@ const SEVERITY_TO_STATUS: Record<MaintenanceSeverity, BoatStatus | null> = {
   High: 'Do not sail',
 };
 
+const REPAIR_TYPES: string[] = [
+  'Hull Repair',
+  'Rigging Repair',
+  'Sail Repair',
+  'Motor Repair',
+  'General Maintenance',
+  'Safety Equipment',
+  'Other',
+];
+
 export function ReportDamagePage() {
   const { boats } = useBoats();
   const { equipment } = useEquipment();
-  const { maintenance, isLoading: maintenanceLoading } = useMaintenance();
   const createMaintenance = useCreateMaintenance();
   const updateBoat = useUpdateBoat();
   const { user, permissions } = useDemoAuth();
+  const { showFeatureModal } = useFeatureModal();
 
   const [activeTab, setActiveTab] = useState('report');
+
+  // Report Damage form state
   const [itemType, setItemType] = useState<'boat' | 'equipment'>('boat');
   const [selectedItem, setSelectedItem] = useState<string>('');
   const [damageType, setDamageType] = useState<MaintenanceCategory | ''>('');
@@ -67,10 +78,14 @@ export function ReportDamagePage() {
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const recentReports = maintenance
-    .filter((m) => m.status !== 'Resolved')
-    .sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime())
-    .slice(0, 10);
+  // Log Repair form state
+  const [repairItemType, setRepairItemType] = useState<'boat' | 'equipment'>('boat');
+  const [repairSelectedItem, setRepairSelectedItem] = useState<string>('');
+  const [repairType, setRepairType] = useState<string>('');
+  const [repairDescription, setRepairDescription] = useState('');
+  const [partsUsed, setPartsUsed] = useState('');
+  const [totalCost, setTotalCost] = useState('');
+  const [additionalNotes, setAdditionalNotes] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,18 +150,37 @@ export function ReportDamagePage() {
 
   const isFormValid = selectedItem && damageType && severity && description.trim();
 
+  // Dynamic header based on active tab
+  const headerConfig = activeTab === 'report'
+    ? {
+        icon: AlertTriangle,
+        iconBg: 'bg-red-50',
+        iconColor: 'text-red-500',
+        title: 'Report Damage',
+        subtitle: 'Report damage or issues for any boat or equipment.',
+      }
+    : {
+        icon: Wrench,
+        iconBg: 'bg-gray-100',
+        iconColor: 'text-gray-600',
+        title: 'Log Repair',
+        subtitle: 'Record a completed repair or maintenance work.',
+      };
+
+  const HeaderIcon = headerConfig.icon;
+
   return (
     <AppShell>
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-            <AlertTriangle className="h-6 w-6 text-red-500" />
+          <div className={`flex h-12 w-12 items-center justify-center rounded-full ${headerConfig.iconBg}`}>
+            <HeaderIcon className={`h-6 w-6 ${headerConfig.iconColor}`} />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Report Damage</h1>
+            <h1 className="text-3xl font-bold text-foreground">{headerConfig.title}</h1>
             <p className="text-muted-foreground mt-1">
-              Report damage or issues for any boat or equipment.
+              {headerConfig.subtitle}
             </p>
           </div>
         </div>
@@ -188,7 +222,7 @@ export function ReportDamagePage() {
                         }}
                         className={`flex flex-col items-center justify-center gap-2 p-6 rounded-lg border-2 transition-colors ${
                           itemType === 'boat'
-                            ? 'border-[#1f2937] bg-[#1f2937] text-white'
+                            ? 'border-primary bg-primary text-primary-foreground'
                             : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                         }`}
                       >
@@ -203,7 +237,7 @@ export function ReportDamagePage() {
                         }}
                         className={`flex flex-col items-center justify-center gap-2 p-6 rounded-lg border-2 transition-colors ${
                           itemType === 'equipment'
-                            ? 'border-[#1f2937] bg-[#1f2937] text-white'
+                            ? 'border-primary bg-primary text-primary-foreground'
                             : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                         }`}
                       >
@@ -328,7 +362,7 @@ export function ReportDamagePage() {
                   {/* Submit */}
                   <Button
                     type="submit"
-                    className="w-full bg-[#1f2937] hover:bg-[#374151]"
+                    className="w-full"
                     disabled={!isFormValid || isSubmitting || !permissions.canReportDamage}
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit Damage Report'}
@@ -340,28 +374,167 @@ export function ReportDamagePage() {
 
           <TabsContent value="log" className="mt-6">
             <Card className="border-0 shadow-sm bg-white">
-              <CardHeader>
-                <CardTitle className="text-lg">Open Reports</CardTitle>
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-gray-600" />
+                  <CardTitle className="text-lg">Repair Log Form</CardTitle>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Record details of completed repairs or maintenance work.
+                </p>
               </CardHeader>
               <CardContent>
-                {maintenanceLoading ? (
+                <form className="space-y-6">
+                  {/* What was repaired? */}
                   <div className="space-y-3">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Skeleton key={i} className="h-20 w-full" />
-                    ))}
+                    <Label>What was repaired?</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRepairItemType('boat');
+                          setRepairSelectedItem('');
+                        }}
+                        className={`flex flex-col items-center justify-center gap-2 p-6 rounded-lg border-2 transition-colors ${
+                          repairItemType === 'boat'
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        <Ship className="h-6 w-6" />
+                        <span className="font-medium">A Boat</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRepairItemType('equipment');
+                          setRepairSelectedItem('');
+                        }}
+                        className={`flex flex-col items-center justify-center gap-2 p-6 rounded-lg border-2 transition-colors ${
+                          repairItemType === 'equipment'
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        <Package className="h-6 w-6" />
+                        <span className="font-medium">Equipment</span>
+                      </button>
+                    </div>
                   </div>
-                ) : recentReports.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Wrench className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>No open reports</p>
+
+                  {/* Select Item */}
+                  <div className="space-y-2">
+                    <Label htmlFor="repairItem">
+                      Select {repairItemType === 'boat' ? 'Boat' : 'Equipment'} *
+                    </Label>
+                    <Select value={repairSelectedItem} onValueChange={setRepairSelectedItem}>
+                      <SelectTrigger id="repairItem" className="bg-white">
+                        <SelectValue placeholder={`Search for a ${repairItemType}...`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {repairItemType === 'boat'
+                          ? boats.map((boat) => (
+                              <SelectItem key={boat.id} value={boat.id}>
+                                {boat.displayName} ({boat.hullNumber})
+                              </SelectItem>
+                            ))
+                          : equipment.map((item) => (
+                              <SelectItem key={item.id} value={item.id}>
+                                {item.name} ({item.type})
+                              </SelectItem>
+                            ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {recentReports.map((entry) => (
-                      <MaintenanceItem key={entry.id} entry={entry} />
-                    ))}
+
+                  {/* Repair Type and Date Completed */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="repairType">Repair Type *</Label>
+                      <Select value={repairType} onValueChange={setRepairType}>
+                        <SelectTrigger id="repairType" className="bg-white">
+                          <SelectValue placeholder="Hull Repair" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {REPAIR_TYPES.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="dateCompleted">Date Completed</Label>
+                      <Input
+                        id="dateCompleted"
+                        type="date"
+                        defaultValue={new Date().toISOString().split('T')[0]}
+                        className="bg-white"
+                      />
+                    </div>
                   </div>
-                )}
+
+                  {/* Describe the Repair */}
+                  <div className="space-y-2">
+                    <Label htmlFor="repairDescription">Describe the Repair *</Label>
+                    <Textarea
+                      id="repairDescription"
+                      placeholder="What was done? Describe the repair work completed..."
+                      value={repairDescription}
+                      onChange={(e) => setRepairDescription(e.target.value)}
+                      rows={4}
+                      className="bg-white"
+                    />
+                  </div>
+
+                  {/* Parts Used and Total Cost */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="partsUsed">Parts Used</Label>
+                      <Input
+                        id="partsUsed"
+                        placeholder="List any parts or materials used"
+                        value={partsUsed}
+                        onChange={(e) => setPartsUsed(e.target.value)}
+                        className="bg-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="totalCost">Total Cost ($)</Label>
+                      <Input
+                        id="totalCost"
+                        placeholder="Parts + labor"
+                        value={totalCost}
+                        onChange={(e) => setTotalCost(e.target.value)}
+                        className="bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Additional Notes */}
+                  <div className="space-y-2">
+                    <Label htmlFor="additionalNotes">Additional Notes</Label>
+                    <Textarea
+                      id="additionalNotes"
+                      placeholder="Any follow-up recommendations or notes..."
+                      value={additionalNotes}
+                      onChange={(e) => setAdditionalNotes(e.target.value)}
+                      rows={3}
+                      className="bg-white"
+                    />
+                  </div>
+
+                  {/* Submit */}
+                  <Button
+                    type="button"
+                    className="w-full"
+                    onClick={() => showFeatureModal('saveLogEntry')}
+                  >
+                    Save Repair Log
+                  </Button>
+                </form>
               </CardContent>
             </Card>
           </TabsContent>

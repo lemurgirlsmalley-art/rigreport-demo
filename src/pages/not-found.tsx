@@ -1,15 +1,14 @@
 import { Link } from 'wouter';
-import { Anchor, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import logo from '@/assets/logo.png';
 
 export function NotFoundPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="text-center">
         <div className="flex justify-center mb-6">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
-            <Anchor className="h-10 w-10 text-primary" />
-          </div>
+          <img src={logo} alt="RigReport Logo" className="h-20 w-20 rounded-full" />
         </div>
         <h1 className="text-6xl font-bold text-primary mb-4">404</h1>
         <h2 className="text-2xl font-semibold mb-2">Page Not Found</h2>

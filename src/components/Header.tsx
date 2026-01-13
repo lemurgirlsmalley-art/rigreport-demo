@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Menu, X, Anchor } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { RoleSwitcher } from '@/components/RoleSwitcher';
 import { cn } from '@/lib/utils';
+import logo from '@/assets/logo.png';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard' },
@@ -28,9 +29,7 @@ export function Header({ className }: HeaderProps) {
         {/* Logo */}
         <Link href="/dashboard">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Anchor className="h-5 w-5" />
-            </div>
+            <img src={logo} alt="RigReport Logo" className="h-8 w-8 rounded-full" />
             <span className="text-xl font-bold text-primary">RigReport</span>
           </div>
         </Link>

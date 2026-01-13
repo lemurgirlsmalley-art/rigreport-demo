@@ -56,28 +56,28 @@ const DEMO_USERS: Record<Role, DemoUser> = {
     name: 'Sarah Admin',
     email: 'admin@rigreport.demo',
     role: 'admin',
-    organization: 'ASC',
+    organization: 'YOH',
   },
   coach: {
     id: 'demo-coach',
     name: 'Mike Coach',
     email: 'coach@rigreport.demo',
     role: 'coach',
-    organization: 'ACS',
+    organization: 'EO',
   },
   volunteer: {
     id: 'demo-volunteer',
     name: 'Tom Volunteer',
     email: 'volunteer@rigreport.demo',
     role: 'volunteer',
-    organization: 'SOA',
+    organization: 'DSC',
   },
   junior_sailor: {
     id: 'demo-junior',
     name: 'Alex Junior',
     email: 'junior@rigreport.demo',
     role: 'junior_sailor',
-    organization: 'ASC',
+    organization: 'YOH',
   },
 };
 

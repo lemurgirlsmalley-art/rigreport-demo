@@ -138,7 +138,7 @@ function QuickActionsCard() {
       </CardHeader>
       <CardContent className="space-y-2">
         <Link href="/report">
-          <Button className="w-full justify-start gap-2 h-10 bg-[#1f2937] hover:bg-[#374151] text-white">
+          <Button className="w-full justify-start gap-2 h-10">
             <Plus className="h-4 w-4" />
             Log Boat Inspection
           </Button>

@@ -1,7 +1,8 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { format, parseISO } from 'date-fns';
-import type { BoatStatus, Boat } from './types';
+import type { BoatStatus, Boat, Organization } from './types';
+import orgLogo from '@/assets/org-logo.png';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -67,15 +68,20 @@ export function groupBoatsByLocation(boats: Boat[]): Map<string, Boat[]> {
 
 export function getOrganizationName(org: string): string {
   switch (org) {
-    case 'ACS':
-      return 'Augusta Cruising Society';
-    case 'ASC':
-      return 'Augusta Sailing Club';
-    case 'SOA':
-      return 'Sailors of Augusta';
+    case 'EO':
+      return 'Example Organization';
+    case 'YOH':
+      return 'Your Organization Here';
+    case 'DSC':
+      return 'Demo Sailing Club';
     default:
       return org;
   }
+}
+
+export function getOrganizationLogo(_org: Organization): string {
+  // All organizations use the same placeholder logo for the demo
+  return orgLogo;
 }
 
 export function pluralize(count: number, singular: string, plural?: string): string {

@@ -3,6 +3,7 @@ import { MOCK_BOATS, MOCK_EQUIPMENT, MOCK_MAINTENANCE } from './mockData';
 import { generateId } from './utils';
 
 const STORAGE_PREFIX = 'rigreport_demo_';
+const DATA_VERSION = '4'; // Increment this to force a data reset
 
 class MockDataStore {
   private boats: Boat[];
@@ -10,6 +11,16 @@ class MockDataStore {
   private maintenance: MaintenanceEntry[];
 
   constructor() {
+    // Check if we need to reset due to version change
+    const storedVersion = localStorage.getItem(`${STORAGE_PREFIX}version`);
+    if (storedVersion !== DATA_VERSION) {
+      // Clear old data and use fresh mock data
+      localStorage.removeItem(`${STORAGE_PREFIX}boats`);
+      localStorage.removeItem(`${STORAGE_PREFIX}equipment`);
+      localStorage.removeItem(`${STORAGE_PREFIX}maintenance`);
+      localStorage.setItem(`${STORAGE_PREFIX}version`, DATA_VERSION);
+    }
+
     this.boats = this.load('boats') || [...MOCK_BOATS];
     this.equipment = this.load('equipment') || [...MOCK_EQUIPMENT];
     this.maintenance = this.load('maintenance') || [...MOCK_MAINTENANCE];

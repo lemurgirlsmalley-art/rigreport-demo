@@ -8,6 +8,7 @@ import {
   Search,
   AlertTriangle,
   Users,
+  Bell,
   LogOut,
   ChevronRight,
   Shield,
@@ -92,6 +93,7 @@ const navigation = [
   { name: 'Find a Boat', href: '/regatta', icon: Search },
   { name: 'Report Damage', href: '/report', icon: AlertTriangle, highlight: true, requiresPermission: 'canReportDamage' as const },
   { name: 'User Management', href: '/users', icon: Users, badge: 2, requiresPermission: 'canManageUsers' as const },
+  { name: 'Notifications', href: '/notifications', icon: Bell },
 ];
 
 interface SidebarProps {

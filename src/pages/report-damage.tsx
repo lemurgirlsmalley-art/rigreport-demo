@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { AlertTriangle, Ship, Package, Wrench, Settings } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { AlertTriangle, Ship, Package, Wrench, Settings, Camera, X, Loader2 } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,6 +77,9 @@ export function ReportDamagePage() {
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [damageImageUrl, setDamageImageUrl] = useState<string | null>(null);
+  const [isUploadingDamageImage, setIsUploadingDamageImage] = useState(false);
+  const damageFileInputRef = useRef<HTMLInputElement>(null);
 
   // Log Repair form state
   const [repairItemType, setRepairItemType] = useState<'boat' | 'equipment'>('boat');
@@ -86,6 +89,66 @@ export function ReportDamagePage() {
   const [partsUsed, setPartsUsed] = useState('');
   const [totalCost, setTotalCost] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
+  const [repairImageUrl, setRepairImageUrl] = useState<string | null>(null);
+  const [isUploadingRepairImage, setIsUploadingRepairImage] = useState(false);
+  const repairFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDamageImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File Too Large',
+        description: 'Please select an image under 5MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploadingDamageImage(true);
+
+    // Convert to base64 for demo (production uses R2 storage)
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setDamageImageUrl(reader.result as string);
+      setIsUploadingDamageImage(false);
+      toast({
+        title: 'Photo Added',
+        description: 'Image uploaded successfully',
+        variant: 'success',
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRepairImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File Too Large',
+        description: 'Please select an image under 5MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploadingRepairImage(true);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setRepairImageUrl(reader.result as string);
+      setIsUploadingRepairImage(false);
+      toast({
+        title: 'Photo Added',
+        description: 'Image uploaded successfully',
+        variant: 'success',
+      });
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -359,6 +422,56 @@ export function ReportDamagePage() {
                     />
                   </div>
 
+                  {/* Photo Upload */}
+                  <div className="space-y-2">
+                    <Label>Add Photo (Optional)</Label>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      onChange={handleDamageImageUpload}
+                      ref={damageFileInputRef}
+                      className="hidden"
+                    />
+                    {damageImageUrl ? (
+                      <div className="relative inline-block">
+                        <img
+                          src={damageImageUrl}
+                          alt="Damage preview"
+                          className="max-h-48 rounded-lg border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDamageImageUrl(null);
+                            if (damageFileInputRef.current) {
+                              damageFileInputRef.current.value = '';
+                            }
+                          }}
+                          className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => damageFileInputRef.current?.click()}
+                        disabled={isUploadingDamageImage}
+                        className="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        {isUploadingDamageImage ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <Camera className="h-5 w-5" />
+                        )}
+                        <span>{isUploadingDamageImage ? 'Uploading...' : 'Click to add a photo'}</span>
+                      </button>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Accepts JPEG, PNG, GIF, WebP (max 5MB)
+                    </p>
+                  </div>
+
                   {/* Submit */}
                   <Button
                     type="submit"
@@ -524,6 +637,56 @@ export function ReportDamagePage() {
                       rows={3}
                       className="bg-white"
                     />
+                  </div>
+
+                  {/* Photo Upload */}
+                  <div className="space-y-2">
+                    <Label>Add Photo (Optional)</Label>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      onChange={handleRepairImageUpload}
+                      ref={repairFileInputRef}
+                      className="hidden"
+                    />
+                    {repairImageUrl ? (
+                      <div className="relative inline-block">
+                        <img
+                          src={repairImageUrl}
+                          alt="Repair preview"
+                          className="max-h-48 rounded-lg border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRepairImageUrl(null);
+                            if (repairFileInputRef.current) {
+                              repairFileInputRef.current.value = '';
+                            }
+                          }}
+                          className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => repairFileInputRef.current?.click()}
+                        disabled={isUploadingRepairImage}
+                        className="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        {isUploadingRepairImage ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <Camera className="h-5 w-5" />
+                        )}
+                        <span>{isUploadingRepairImage ? 'Uploading...' : 'Click to add a photo'}</span>
+                      </button>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Accepts JPEG, PNG, GIF, WebP (max 5MB)
+                    </p>
                   </div>
 
                   {/* Submit */}

@@ -1,4 +1,4 @@
-import type { Boat, Equipment, MaintenanceEntry } from './types';
+import type { Boat, Equipment, MaintenanceEntry, Reservation } from './types';
 import { MOCK_BOATS, MOCK_EQUIPMENT, MOCK_MAINTENANCE } from './mockData';
 import { generateId } from './utils';
 
@@ -9,6 +9,7 @@ class MockDataStore {
   private boats: Boat[];
   private equipment: Equipment[];
   private maintenance: MaintenanceEntry[];
+  private reservations: Reservation[];
 
   constructor() {
     // Check if we need to reset due to version change
@@ -18,12 +19,14 @@ class MockDataStore {
       localStorage.removeItem(`${STORAGE_PREFIX}boats`);
       localStorage.removeItem(`${STORAGE_PREFIX}equipment`);
       localStorage.removeItem(`${STORAGE_PREFIX}maintenance`);
+      localStorage.removeItem(`${STORAGE_PREFIX}reservations`);
       localStorage.setItem(`${STORAGE_PREFIX}version`, DATA_VERSION);
     }
 
     this.boats = this.load('boats') || [...MOCK_BOATS];
     this.equipment = this.load('equipment') || [...MOCK_EQUIPMENT];
     this.maintenance = this.load('maintenance') || [...MOCK_MAINTENANCE];
+    this.reservations = this.load('reservations') || [];
   }
 
   // Simulate network delay
@@ -195,14 +198,50 @@ class MockDataStore {
     return updatedEntry;
   }
 
+  // Reservation CRUD operations
+  async getReservations(boatId?: string): Promise<Reservation[]> {
+    await this.simulateDelay();
+    if (boatId) {
+      return this.reservations.filter((r) => r.boatId === boatId);
+    }
+    return [...this.reservations];
+  }
+
+  async getReservation(id: string): Promise<Reservation | undefined> {
+    await this.simulateDelay();
+    return this.reservations.find((r) => r.id === id);
+  }
+
+  async createReservation(
+    data: Omit<Reservation, 'id' | 'createdAt'>
+  ): Promise<Reservation> {
+    await this.simulateDelay();
+    const reservation: Reservation = {
+      ...data,
+      id: generateId(),
+      createdAt: new Date().toISOString(),
+    };
+    this.reservations = [...this.reservations, reservation];
+    this.save('reservations', this.reservations);
+    return reservation;
+  }
+
+  async deleteReservation(id: string): Promise<void> {
+    await this.simulateDelay();
+    this.reservations = this.reservations.filter((r) => r.id !== id);
+    this.save('reservations', this.reservations);
+  }
+
   // Reset to initial state
   reset(): void {
     this.boats = [...MOCK_BOATS];
     this.equipment = [...MOCK_EQUIPMENT];
     this.maintenance = [...MOCK_MAINTENANCE];
+    this.reservations = [];
     this.save('boats', this.boats);
     this.save('equipment', this.equipment);
     this.save('maintenance', this.maintenance);
+    this.save('reservations', this.reservations);
   }
 
   // Clear all localStorage data
@@ -210,9 +249,11 @@ class MockDataStore {
     localStorage.removeItem(`${STORAGE_PREFIX}boats`);
     localStorage.removeItem(`${STORAGE_PREFIX}equipment`);
     localStorage.removeItem(`${STORAGE_PREFIX}maintenance`);
+    localStorage.removeItem(`${STORAGE_PREFIX}reservations`);
     this.boats = [...MOCK_BOATS];
     this.equipment = [...MOCK_EQUIPMENT];
     this.maintenance = [...MOCK_MAINTENANCE];
+    this.reservations = [];
   }
 }
 

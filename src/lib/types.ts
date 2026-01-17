@@ -132,3 +132,14 @@ export interface Permissions {
   canReportDamage: boolean;
   canResolveMaintenance: boolean;
 }
+
+export interface Reservation {
+  id: string;
+  boatId: string;
+  startDate: string;
+  endDate: string;
+  reservedBy: string;
+  email: string;
+  reason?: string;
+  createdAt: string;
+}

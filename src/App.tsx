@@ -16,6 +16,7 @@ import { RegattaPage } from '@/pages/regatta';
 import { EquipmentPage } from '@/pages/equipment';
 import { ReportDamagePage } from '@/pages/report-damage';
 import { UserManagementPage } from '@/pages/user-management';
+import { NotificationSettingsPage } from '@/pages/notification-settings';
 import { NotFoundPage } from '@/pages/not-found';
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
               <Route path="/equipment" component={EquipmentPage} />
               <Route path="/report" component={ReportDamagePage} />
               <Route path="/users" component={UserManagementPage} />
+              <Route path="/notifications" component={NotificationSettingsPage} />
               <Route component={NotFoundPage} />
             </Switch>
             <FeatureModal />

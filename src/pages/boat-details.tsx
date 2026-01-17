@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useLocation } from 'wouter';
 import {
   ArrowLeft,
@@ -11,6 +12,12 @@ import {
   Trash2,
   Flag,
   CheckCircle,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Mail,
+  User,
 } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -28,9 +35,331 @@ import {
 } from '@/components/ui/select';
 import { useBoat } from '@/hooks/use-boats';
 import { useMaintenance } from '@/hooks/use-maintenance';
+import { useReservations, useCreateReservation, useDeleteReservation } from '@/hooks/use-reservations';
 import { useDemoAuth } from '@/hooks/use-demo-auth';
 import { useFeatureModal } from '@/hooks/use-feature-modal';
+import { toast } from '@/hooks/use-toast';
 import { formatDate, getOrganizationName, getOrganizationLogo } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import type { Reservation } from '@/lib/types';
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isSameMonth,
+  isToday,
+  addMonths,
+  subMonths,
+  isWithinInterval,
+  parseISO,
+  startOfWeek,
+  endOfWeek,
+} from 'date-fns';
+
+// Reservations Section Component
+function ReservationsSection({ boatId }: { boatId: string }) {
+  const { reservations, isLoading } = useReservations(boatId);
+  const createReservation = useCreateReservation();
+  const deleteReservation = useDeleteReservation();
+  const { permissions } = useDemoAuth();
+
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [formData, setFormData] = useState({
+    startDate: '',
+    endDate: '',
+    reservedBy: '',
+    email: '',
+    reason: '',
+  });
+
+  const today = new Date();
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
+  const calendarStart = startOfWeek(monthStart);
+  const calendarEnd = endOfWeek(monthEnd);
+  const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+
+  const activeReservations = reservations.filter(
+    (r) => parseISO(r.endDate) >= today
+  );
+
+  const getReservationForDate = (date: Date): Reservation | undefined => {
+    return reservations.find((r) => {
+      const start = parseISO(r.startDate);
+      const end = parseISO(r.endDate);
+      return isWithinInterval(date, { start, end });
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.startDate || !formData.endDate || !formData.reservedBy || !formData.email) {
+      toast({
+        title: 'Missing fields',
+        description: 'Please fill in all required fields',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await createReservation.mutateAsync({
+        boatId,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        reservedBy: formData.reservedBy,
+        email: formData.email,
+        reason: formData.reason || undefined,
+      });
+
+      toast({
+        title: 'Reservation Created',
+        description: 'Your reservation has been saved',
+        variant: 'success',
+      });
+
+      setFormData({ startDate: '', endDate: '', reservedBy: '', email: '', reason: '' });
+      setIsFormOpen(false);
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to create reservation',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteReservation.mutateAsync(id);
+      toast({
+        title: 'Reservation Deleted',
+        description: 'The reservation has been removed',
+        variant: 'success',
+      });
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete reservation',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  return (
+    <Card className="border-0 shadow-sm bg-white">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <CalendarDays className="h-4 w-4" />
+            Reservations
+            {activeReservations.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {activeReservations.length}
+              </Badge>
+            )}
+          </CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsFormOpen(!isFormOpen)}
+          >
+            {isFormOpen ? 'Cancel' : 'Reserve Boat'}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Reservation Form */}
+        {isFormOpen && (
+          <form onSubmit={handleSubmit} className="space-y-4 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date *</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  min={format(today, 'yyyy-MM-dd')}
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  className="bg-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date *</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  min={formData.startDate || format(today, 'yyyy-MM-dd')}
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  className="bg-white"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="reservedBy">Your Name *</Label>
+                <Input
+                  id="reservedBy"
+                  placeholder="Enter your name"
+                  value={formData.reservedBy}
+                  onChange={(e) => setFormData({ ...formData, reservedBy: e.target.value })}
+                  className="bg-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="bg-white"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reason">Event/Reason (Optional)</Label>
+              <Input
+                id="reason"
+                placeholder="e.g., Regatta practice, sailing lesson"
+                value={formData.reason}
+                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                className="bg-white"
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={createReservation.isPending}>
+              {createReservation.isPending ? 'Creating...' : 'Create Reservation'}
+            </Button>
+          </form>
+        )}
+
+        {/* Calendar */}
+        <div className="border rounded-lg p-4">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="button"
+              onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+              className="p-1 hover:bg-gray-100 rounded"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <span className="font-medium">{format(currentMonth, 'MMMM yyyy')}</span>
+            <button
+              type="button"
+              onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+              className="p-1 hover:bg-gray-100 rounded"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-7 gap-1 text-center text-xs">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+              <div key={day} className="py-1 font-medium text-muted-foreground">
+                {day}
+              </div>
+            ))}
+            {calendarDays.map((day) => {
+              const reservation = getReservationForDate(day);
+              const isCurrentMonth = isSameMonth(day, currentMonth);
+              const isDayToday = isToday(day);
+
+              return (
+                <div
+                  key={day.toISOString()}
+                  className={`py-2 text-sm rounded ${
+                    !isCurrentMonth ? 'text-gray-300' : ''
+                  } ${isDayToday ? 'ring-2 ring-primary ring-offset-1' : ''} ${
+                    reservation ? 'bg-primary text-primary-foreground' : ''
+                  }`}
+                  title={reservation ? `Reserved by ${reservation.reservedBy}` : undefined}
+                >
+                  {format(day, 'd')}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Upcoming Reservations */}
+        {isLoading ? (
+          <Skeleton className="h-20 w-full" />
+        ) : activeReservations.length === 0 ? (
+          <p className="text-center py-4 text-muted-foreground text-sm">
+            No upcoming reservations
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <h4 className="font-medium text-sm">Upcoming Reservations</h4>
+            {activeReservations
+              .sort((a, b) => parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime())
+              .map((reservation) => {
+                const isActive = isWithinInterval(today, {
+                  start: parseISO(reservation.startDate),
+                  end: parseISO(reservation.endDate),
+                });
+
+                return (
+                  <div
+                    key={reservation.id}
+                    className={`p-3 rounded-lg border ${
+                      isActive ? 'border-primary bg-primary/5' : 'border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">
+                            {format(parseISO(reservation.startDate), 'MMM d')} -{' '}
+                            {format(parseISO(reservation.endDate), 'MMM d, yyyy')}
+                          </span>
+                          {isActive && (
+                            <Badge variant="default" className="text-xs">Active</Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {reservation.reservedBy}
+                          </span>
+                          <a
+                            href={`mailto:${reservation.email}`}
+                            className="flex items-center gap-1 hover:text-primary"
+                          >
+                            <Mail className="h-3 w-3" />
+                            {reservation.email}
+                          </a>
+                        </div>
+                        {reservation.reason && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {reservation.reason}
+                          </p>
+                        )}
+                      </div>
+                      {permissions.canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(reservation.id)}
+                          className="p-1 text-gray-400 hover:text-red-500"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export function BoatDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -335,6 +664,9 @@ export function BoatDetailsPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Reservations */}
+            <ReservationsSection boatId={id!} />
           </div>
         </div>
       </div>

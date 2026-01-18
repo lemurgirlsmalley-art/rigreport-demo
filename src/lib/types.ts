@@ -168,6 +168,12 @@ export interface Slip {
   monthlyRate?: number;
   annualRate?: number;
   notes?: string;
+  // Liability insurance
+  insuranceProvider?: string;
+  insurancePolicyNumber?: string;
+  insuranceExpiration?: string;
+  liabilityCoverage?: number;
+  insuranceNotes?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -200,12 +206,25 @@ export interface SlipMemberAssignment {
   createdAt: string;
 }
 
-export interface SlipBoatAssignment {
+export interface SlipBoat {
   id: string;
   slipId: string;
-  boatId: string;
+  boatName: string;
+  boatType?: string;
+  manufacturer?: string;
+  model?: string;
+  year?: number;
+  length?: string;
+  beam?: string;
+  draft?: string;
+  hullColor?: string;
+  registrationNumber?: string;
+  hin?: string;
+  ownerName?: string;
   notes?: string;
-  assignedAt: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SlipPayment {

@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Dialog,
@@ -32,17 +31,16 @@ import {
 import { mockStore } from '@/lib/mockDataStore';
 import type {
   Slip, SlipStatus, SlipType, SlipMember, SlipMemberAssignment,
-  SlipBoatAssignment, SlipPayment, SlipReservation, PaymentMethod,
-  MemberAssignmentRole, Boat
+  SlipBoat, SlipPayment, PaymentMethod, MemberAssignmentRole
 } from '@/lib/types';
 import {
-  ChevronLeft, ChevronRight, ChevronDown, MapPin, Calendar, User,
+  ChevronLeft, ChevronDown, MapPin, Calendar, User,
   AlertTriangle, DollarSign, Mail, Pencil, Trash2,
   Anchor, Ruler, Loader2, Phone, Users, Ship, CreditCard,
-  CalendarPlus, CalendarDays, Plus, Zap, Droplets, X
+  Plus, Zap, Droplets, X, Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, isSameDay, addMonths, subMonths, isWithinInterval, parseISO } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { useDemoAuth } from '@/hooks/use-demo-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
@@ -99,30 +97,17 @@ export function SlipDetailPage() {
     queryFn: () => mockStore.getSlipMembers(),
   });
 
-  // Fetch boat assignments
-  const { data: boatAssignments = [] } = useQuery({
-    queryKey: ['slip-boat-assignments', id],
-    queryFn: () => mockStore.getSlipBoatAssignments(id!),
+  // Fetch slip boats
+  const { data: slipBoats = [] } = useQuery({
+    queryKey: ['slip-boats', id],
+    queryFn: () => mockStore.getSlipBoats(id!),
     enabled: !!id,
-  });
-
-  // Fetch all boats for assignment dialog
-  const { data: allBoats = [] } = useQuery({
-    queryKey: ['boats'],
-    queryFn: () => mockStore.getBoats(),
   });
 
   // Fetch payments
   const { data: payments = [] } = useQuery({
     queryKey: ['slip-payments', id],
     queryFn: () => mockStore.getSlipPayments(id!),
-    enabled: !!id,
-  });
-
-  // Fetch reservations
-  const { data: reservations = [] } = useQuery({
-    queryKey: ['slip-reservations', id],
-    queryFn: () => mockStore.getSlipReservations(id!),
     enabled: !!id,
   });
 
@@ -235,7 +220,7 @@ export function SlipDetailPage() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete Slip?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete <b>{slip.displayName}</b> and remove all associated members, payments, and reservations.
+                        This action cannot be undone. This will permanently delete <b>{slip.displayName}</b> and remove all associated members, boats, and payments.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -350,7 +335,7 @@ export function SlipDetailPage() {
             </Card>
           </div>
 
-          {/* Right Column: Members, Boats, Payments, Reservations */}
+          {/* Right Column: Members, Boats, Payments, Insurance */}
           <div className="md:col-span-2 space-y-6">
 
             {/* Members Section */}
@@ -363,8 +348,7 @@ export function SlipDetailPage() {
             {/* Boats Section */}
             <BoatsSection
               slipId={id!}
-              boatAssignments={boatAssignments}
-              allBoats={allBoats}
+              boats={slipBoats}
             />
 
             {/* Payments Section */}
@@ -374,11 +358,8 @@ export function SlipDetailPage() {
               members={allMembers}
             />
 
-            {/* Reservations Section */}
-            <ReservationsSection
-              slipId={id!}
-              reservations={reservations}
-            />
+            {/* Insurance Section */}
+            <InsuranceSection slip={slip} />
           </div>
         </div>
       </div>
@@ -411,7 +392,13 @@ function EditSlipDialog({ slip }: { slip: Slip }) {
     hasWater: slip.hasWater || false,
     monthlyRate: slip.monthlyRate?.toString() || '',
     annualRate: slip.annualRate?.toString() || '',
-    notes: slip.notes || ''
+    notes: slip.notes || '',
+    // Insurance fields
+    insuranceProvider: slip.insuranceProvider || '',
+    insurancePolicyNumber: slip.insurancePolicyNumber || '',
+    insuranceExpiration: slip.insuranceExpiration || '',
+    liabilityCoverage: slip.liabilityCoverage?.toString() || '',
+    insuranceNotes: slip.insuranceNotes || ''
   });
 
   const updateMutation = useMutation({
@@ -448,7 +435,13 @@ function EditSlipDialog({ slip }: { slip: Slip }) {
       hasWater: formData.hasWater,
       monthlyRate: formData.monthlyRate ? Number(formData.monthlyRate) : undefined,
       annualRate: formData.annualRate ? Number(formData.annualRate) : undefined,
-      notes: formData.notes || undefined
+      notes: formData.notes || undefined,
+      // Insurance fields
+      insuranceProvider: formData.insuranceProvider || undefined,
+      insurancePolicyNumber: formData.insurancePolicyNumber || undefined,
+      insuranceExpiration: formData.insuranceExpiration || undefined,
+      liabilityCoverage: formData.liabilityCoverage ? Number(formData.liabilityCoverage) : undefined,
+      insuranceNotes: formData.insuranceNotes || undefined
     });
   };
 
@@ -574,6 +567,37 @@ function EditSlipDialog({ slip }: { slip: Slip }) {
           <div className="grid gap-2">
             <Label>Notes</Label>
             <Textarea value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="Any additional notes about this slip" rows={3} />
+          </div>
+
+          <Separator />
+
+          {/* Liability Insurance */}
+          <div className="space-y-2">
+            <h4 className="font-medium text-sm text-muted-foreground">Liability Insurance</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Insurance Provider</Label>
+                <Input value={formData.insuranceProvider} onChange={e => setFormData({...formData, insuranceProvider: e.target.value})} placeholder="e.g., State Farm, Allstate" />
+              </div>
+              <div className="grid gap-2">
+                <Label>Policy Number</Label>
+                <Input value={formData.insurancePolicyNumber} onChange={e => setFormData({...formData, insurancePolicyNumber: e.target.value})} placeholder="Policy #" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Expiration Date</Label>
+                <Input type="date" value={formData.insuranceExpiration} onChange={e => setFormData({...formData, insuranceExpiration: e.target.value})} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Liability Coverage ($)</Label>
+                <Input type="number" value={formData.liabilityCoverage} onChange={e => setFormData({...formData, liabilityCoverage: e.target.value})} placeholder="e.g., 300000" />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Insurance Notes</Label>
+              <Textarea value={formData.insuranceNotes} onChange={e => setFormData({...formData, insuranceNotes: e.target.value})} placeholder="Additional insurance details or requirements" rows={2} />
+            </div>
           </div>
 
           <Button onClick={handleSubmit} disabled={updateMutation.isPending} className="bg-[#1f2937] hover:bg-[#374151]">
@@ -870,34 +894,44 @@ function CreateMemberForm({ onSubmit, isLoading }: {
   );
 }
 
-function BoatsSection({ slipId, boatAssignments, allBoats }: {
+function BoatsSection({ slipId, boats }: {
   slipId: string;
-  boatAssignments: SlipBoatAssignment[];
-  allBoats: Boat[];
+  boats: SlipBoat[];
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingBoat, setEditingBoat] = useState<SlipBoat | null>(null);
   const queryClient = useQueryClient();
 
-  // Find boats that are already assigned
-  const assignedBoatIds = boatAssignments.map(a => a.boatId);
-  const availableBoats = allBoats.filter(b => !assignedBoatIds.includes(b.id));
-
-  const assignBoatMutation = useMutation({
-    mutationFn: (data: { slipId: string; boatId: string; notes?: string }) =>
-      mockStore.createSlipBoatAssignment(data),
+  const createBoatMutation = useMutation({
+    mutationFn: (data: Partial<SlipBoat>) => mockStore.createSlipBoat({ ...data, slipId } as Omit<SlipBoat, 'id' | 'createdAt' | 'updatedAt'>),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['slip-boat-assignments', slipId] });
-      toast({ title: 'Boat Assigned', description: 'Boat has been assigned to this slip.' });
+      queryClient.invalidateQueries({ queryKey: ['slip-boats', slipId] });
+      toast({ title: 'Boat Added', description: 'Boat profile has been created for this slip.' });
       setShowAddDialog(false);
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message || 'Failed to create boat profile.', variant: 'destructive' });
     },
   });
 
-  const unassignBoatMutation = useMutation({
-    mutationFn: (assignmentId: string) => mockStore.deleteSlipBoatAssignment(assignmentId),
+  const updateBoatMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<SlipBoat> }) => mockStore.updateSlipBoat(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['slip-boat-assignments', slipId] });
-      toast({ title: 'Boat Removed', description: 'Boat has been removed from this slip.' });
+      queryClient.invalidateQueries({ queryKey: ['slip-boats', slipId] });
+      toast({ title: 'Boat Updated', description: 'Boat profile has been updated.' });
+      setEditingBoat(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message || 'Failed to update boat profile.', variant: 'destructive' });
+    },
+  });
+
+  const deleteBoatMutation = useMutation({
+    mutationFn: (boatId: string) => mockStore.deleteSlipBoat(boatId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['slip-boats', slipId] });
+      toast({ title: 'Boat Removed', description: 'Boat profile has been deleted.' });
     },
   });
 
@@ -912,8 +946,8 @@ function BoatsSection({ slipId, boatAssignments, allBoats }: {
           >
             <span className="text-lg font-semibold flex items-center gap-2">
               <Ship className="h-5 w-5" /> Boats
-              {boatAssignments.length > 0 && (
-                <Badge variant="secondary" className="ml-2">{boatAssignments.length}</Badge>
+              {boats.length > 0 && (
+                <Badge variant="secondary" className="ml-2">{boats.length}</Badge>
               )}
             </span>
             <ChevronDown className={cn(
@@ -928,107 +962,343 @@ function BoatsSection({ slipId, boatAssignments, allBoats }: {
               {/* Add Boat Button */}
               <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="gap-2" disabled={availableBoats.length === 0}>
-                    <Plus className="h-4 w-4" /> Assign Boat from Fleet
+                  <Button variant="outline" className="gap-2">
+                    <Plus className="h-4 w-4" /> Add Boat Profile
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Assign Boat to Slip</DialogTitle>
+                    <DialogTitle>Add Boat Profile</DialogTitle>
                   </DialogHeader>
-                  <AssignBoatForm
-                    availableBoats={availableBoats}
-                    onAssign={(boatId, notes) => assignBoatMutation.mutate({ slipId, boatId, notes })}
-                    isLoading={assignBoatMutation.isPending}
+                  <SlipBoatForm
+                    onSubmit={(data) => createBoatMutation.mutate(data)}
+                    isLoading={createBoatMutation.isPending}
                   />
                 </DialogContent>
               </Dialog>
 
               {/* Boats List */}
-              {boatAssignments.length === 0 ? (
+              {boats.length === 0 ? (
                 <p className="text-muted-foreground text-center py-4 italic">
-                  No boats assigned to this slip
+                  No boats registered to this slip
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {boatAssignments.map((assignment) => {
-                    const boat = allBoats.find(b => b.id === assignment.boatId);
-                    if (!boat) return null;
-
-                    return (
-                      <Card key={assignment.id} className="shadow-sm">
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <Anchor className="h-4 w-4 text-muted-foreground" />
-                                <Link href={`/fleet/${boat.id}`} className="font-medium hover:underline text-primary">
-                                  {boat.displayName}
-                                </Link>
-                                <Badge variant="outline" className="text-xs">{boat.type}</Badge>
-                              </div>
-                              {boat.hullNumber && (
-                                <p className="text-sm text-muted-foreground">Hull #{boat.hullNumber}</p>
+                  {boats.map((boat) => (
+                    <Card key={boat.id} className="shadow-sm">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Anchor className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">{boat.boatName}</span>
+                              {boat.boatType && (
+                                <Badge variant="outline" className="text-xs">{boat.boatType}</Badge>
                               )}
-                              {assignment.notes && (
-                                <p className="text-sm text-muted-foreground italic">{assignment.notes}</p>
+                              {!boat.isActive && (
+                                <Badge variant="secondary" className="text-xs">Inactive</Badge>
                               )}
                             </div>
+                            <div className="text-sm text-muted-foreground space-y-0.5">
+                              {boat.manufacturer && boat.model && (
+                                <p>{boat.manufacturer} {boat.model}{boat.year ? ` (${boat.year})` : ''}</p>
+                              )}
+                              {boat.length && (
+                                <p className="flex items-center gap-1">
+                                  <Ruler className="h-3 w-3" /> {boat.length} LOA
+                                  {boat.beam && <span>/ {boat.beam} beam</span>}
+                                </p>
+                              )}
+                              {boat.registrationNumber && (
+                                <p>Reg: {boat.registrationNumber}</p>
+                              )}
+                              {boat.hin && (
+                                <p>HIN: {boat.hin}</p>
+                              )}
+                              {boat.ownerName && (
+                                <p className="flex items-center gap-1">
+                                  <User className="h-3 w-3" /> {boat.ownerName}
+                                </p>
+                              )}
+                              {boat.notes && (
+                                <p className="italic">{boat.notes}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => unassignBoatMutation.mutate(assignment.id)}
-                              title="Remove boat"
+                              className="h-8 w-8"
+                              onClick={() => setEditingBoat(boat)}
+                              title="Edit boat"
                             >
-                              <X className="h-4 w-4" />
+                              <Pencil className="h-4 w-4" />
                             </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive"
+                                  title="Remove boat"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Boat Profile?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently delete the boat profile "{boat.boatName}" from this slip.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteBoatMutation.mutate(boat.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
             </div>
           </CardContent>
         </CollapsibleContent>
       </Card>
+
+      {/* Edit Boat Dialog */}
+      <Dialog open={!!editingBoat} onOpenChange={(open) => !open && setEditingBoat(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Boat Profile</DialogTitle>
+          </DialogHeader>
+          {editingBoat && (
+            <SlipBoatForm
+              boat={editingBoat}
+              onSubmit={(data) => updateBoatMutation.mutate({ id: editingBoat.id, data })}
+              isLoading={updateBoatMutation.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Collapsible>
   );
 }
 
-function AssignBoatForm({ availableBoats, onAssign, isLoading }: {
-  availableBoats: Boat[];
-  onAssign: (boatId: string, notes?: string) => void;
+function SlipBoatForm({ boat, onSubmit, isLoading }: {
+  boat?: SlipBoat;
+  onSubmit: (data: Partial<SlipBoat>) => void;
   isLoading: boolean;
 }) {
-  const [boatId, setBoatId] = useState('');
-  const [notes, setNotes] = useState('');
+  const [formData, setFormData] = useState({
+    boatName: boat?.boatName || '',
+    boatType: boat?.boatType || '',
+    manufacturer: boat?.manufacturer || '',
+    model: boat?.model || '',
+    year: boat?.year?.toString() || '',
+    length: boat?.length || '',
+    beam: boat?.beam || '',
+    draft: boat?.draft || '',
+    hullColor: boat?.hullColor || '',
+    registrationNumber: boat?.registrationNumber || '',
+    hin: boat?.hin || '',
+    ownerName: boat?.ownerName || '',
+    notes: boat?.notes || '',
+    isActive: boat?.isActive ?? true,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({
+      boatName: formData.boatName,
+      boatType: formData.boatType || undefined,
+      manufacturer: formData.manufacturer || undefined,
+      model: formData.model || undefined,
+      year: formData.year ? parseInt(formData.year) : undefined,
+      length: formData.length || undefined,
+      beam: formData.beam || undefined,
+      draft: formData.draft || undefined,
+      hullColor: formData.hullColor || undefined,
+      registrationNumber: formData.registrationNumber || undefined,
+      hin: formData.hin || undefined,
+      ownerName: formData.ownerName || undefined,
+      notes: formData.notes || undefined,
+      isActive: formData.isActive,
+    });
+  };
 
   return (
-    <div className="space-y-4 py-4">
-      <div className="space-y-2">
-        <Label>Boat</Label>
-        <Select value={boatId} onValueChange={setBoatId}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select a boat" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableBoats.map(b => (
-              <SelectItem key={b.id} value={b.id}>{b.displayName} ({b.type})</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <form onSubmit={handleSubmit} className="space-y-4 py-2">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="boatName">Boat Name *</Label>
+          <Input
+            id="boatName"
+            value={formData.boatName}
+            onChange={e => setFormData(prev => ({ ...prev, boatName: e.target.value }))}
+            placeholder="e.g., Sea Breeze"
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="boatType">Boat Type</Label>
+          <Select value={formData.boatType} onValueChange={v => setFormData(prev => ({ ...prev, boatType: v }))}>
+            <SelectTrigger id="boatType">
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sailboat">Sailboat</SelectItem>
+              <SelectItem value="powerboat">Powerboat</SelectItem>
+              <SelectItem value="yacht">Yacht</SelectItem>
+              <SelectItem value="catamaran">Catamaran</SelectItem>
+              <SelectItem value="pontoon">Pontoon</SelectItem>
+              <SelectItem value="fishing">Fishing Boat</SelectItem>
+              <SelectItem value="jet_ski">Jet Ski</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
-      <div className="space-y-2">
-        <Label>Notes (optional)</Label>
-        <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any notes about this assignment" />
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="manufacturer">Manufacturer</Label>
+          <Input
+            id="manufacturer"
+            value={formData.manufacturer}
+            onChange={e => setFormData(prev => ({ ...prev, manufacturer: e.target.value }))}
+            placeholder="e.g., Beneteau"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="model">Model</Label>
+          <Input
+            id="model"
+            value={formData.model}
+            onChange={e => setFormData(prev => ({ ...prev, model: e.target.value }))}
+            placeholder="e.g., Oceanis 40.1"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="year">Year</Label>
+          <Input
+            id="year"
+            type="number"
+            value={formData.year}
+            onChange={e => setFormData(prev => ({ ...prev, year: e.target.value }))}
+            placeholder="e.g., 2020"
+            min="1900"
+            max={new Date().getFullYear() + 1}
+          />
+        </div>
       </div>
-      <Button onClick={() => onAssign(boatId, notes || undefined)} disabled={!boatId || isLoading} className="w-full bg-[#1f2937] hover:bg-[#374151]">
-        {isLoading ? 'Assigning...' : 'Assign Boat'}
+
+      <div className="grid grid-cols-4 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="length">Length (LOA)</Label>
+          <Input
+            id="length"
+            value={formData.length}
+            onChange={e => setFormData(prev => ({ ...prev, length: e.target.value }))}
+            placeholder="e.g., 40'"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="beam">Beam</Label>
+          <Input
+            id="beam"
+            value={formData.beam}
+            onChange={e => setFormData(prev => ({ ...prev, beam: e.target.value }))}
+            placeholder="e.g., 12'"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="draft">Draft</Label>
+          <Input
+            id="draft"
+            value={formData.draft}
+            onChange={e => setFormData(prev => ({ ...prev, draft: e.target.value }))}
+            placeholder="e.g., 6ft 6in"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="hullColor">Hull Color</Label>
+          <Input
+            id="hullColor"
+            value={formData.hullColor}
+            onChange={e => setFormData(prev => ({ ...prev, hullColor: e.target.value }))}
+            placeholder="e.g., White"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="registrationNumber">Registration #</Label>
+          <Input
+            id="registrationNumber"
+            value={formData.registrationNumber}
+            onChange={e => setFormData(prev => ({ ...prev, registrationNumber: e.target.value }))}
+            placeholder="State registration number"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="hin">HIN (Hull ID)</Label>
+          <Input
+            id="hin"
+            value={formData.hin}
+            onChange={e => setFormData(prev => ({ ...prev, hin: e.target.value }))}
+            placeholder="Hull Identification Number"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="ownerName">Owner Name</Label>
+        <Input
+          id="ownerName"
+          value={formData.ownerName}
+          onChange={e => setFormData(prev => ({ ...prev, ownerName: e.target.value }))}
+          placeholder="Name of boat owner"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="notes">Notes</Label>
+        <Textarea
+          id="notes"
+          value={formData.notes}
+          onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+          placeholder="Any additional notes about this boat"
+          rows={2}
+        />
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="isActive"
+          checked={formData.isActive}
+          onChange={e => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+          className="h-4 w-4"
+        />
+        <Label htmlFor="isActive" className="font-normal">Boat is currently active at this slip</Label>
+      </div>
+
+      <Button type="submit" disabled={!formData.boatName || isLoading} className="w-full bg-[#1f2937] hover:bg-[#374151]">
+        {isLoading ? 'Saving...' : (boat ? 'Update Boat' : 'Add Boat')}
       </Button>
-    </div>
+    </form>
   );
 }
 
@@ -1277,88 +1547,15 @@ function RecordPaymentForm({ slipId, members, onSubmit, isLoading }: {
   );
 }
 
-function ReservationsSection({ slipId, reservations }: {
-  slipId: string;
-  reservations: SlipReservation[];
-}) {
+function InsuranceSection({ slip }: { slip: Slip }) {
   const [isOpen, setIsOpen] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [calendarMonth, setCalendarMonth] = useState(new Date());
-  const queryClient = useQueryClient();
 
-  const today = new Date().toISOString().split('T')[0];
-  const todayDate = new Date();
+  const hasInsurance = slip.insuranceProvider || slip.insurancePolicyNumber || slip.insuranceExpiration || slip.liabilityCoverage;
 
-  // Filter to show only current and future reservations
-  const activeReservations = reservations.filter(r => r.endDate >= today);
-  const sortedReservations = [...activeReservations].sort((a, b) =>
-    new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-  );
-
-  const createReservationMutation = useMutation({
-    mutationFn: (data: Omit<SlipReservation, 'id' | 'createdAt'>) => mockStore.createSlipReservation(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['slip-reservations', slipId] });
-      toast({ title: 'Reservation Created', description: 'Reservation has been created.' });
-      setShowForm(false);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Reservation Failed',
-        description: error.message || 'Could not create reservation.',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const deleteReservationMutation = useMutation({
-    mutationFn: (reservationId: string) => mockStore.deleteSlipReservation(reservationId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['slip-reservations', slipId] });
-      toast({ title: 'Reservation Deleted', description: 'Reservation has been removed.' });
-    },
-  });
-
-  // Check if a date falls within any reservation
-  const getReservationForDate = (date: Date): SlipReservation | undefined => {
-    return reservations.find(r => {
-      const start = parseISO(r.startDate);
-      const end = parseISO(r.endDate);
-      return isWithinInterval(date, { start, end });
-    });
-  };
-
-  // Generate calendar days for the current month view
-  const monthStart = startOfMonth(calendarMonth);
-  const monthEnd = endOfMonth(calendarMonth);
-  const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  const startDayOfWeek = monthStart.getDay();
-
-  const [formData, setFormData] = useState({
-    startDate: '',
-    endDate: '',
-    reservedBy: '',
-    email: '',
-    phone: '',
-    reason: '',
-    boatInfo: ''
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    createReservationMutation.mutate({
-      slipId,
-      startDate: formData.startDate,
-      endDate: formData.endDate,
-      reservedBy: formData.reservedBy,
-      email: formData.email,
-      phone: formData.phone || undefined,
-      reason: formData.reason || undefined,
-      boatInfo: formData.boatInfo || undefined,
-      status: 'confirmed'
-    });
-    setFormData({ startDate: '', endDate: '', reservedBy: '', email: '', phone: '', reason: '', boatInfo: '' });
-  };
+  // Check if insurance is expired or expiring soon
+  const isExpired = slip.insuranceExpiration && new Date(slip.insuranceExpiration) < new Date();
+  const isExpiringSoon = slip.insuranceExpiration && !isExpired &&
+    new Date(slip.insuranceExpiration) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -1370,9 +1567,15 @@ function ReservationsSection({ slipId, reservations }: {
             aria-expanded={isOpen}
           >
             <span className="text-lg font-semibold flex items-center gap-2">
-              <CalendarDays className="h-5 w-5" /> Reservations
-              {activeReservations.length > 0 && (
-                <Badge variant="secondary" className="ml-2">{activeReservations.length}</Badge>
+              <Shield className="h-5 w-5" /> Liability Insurance
+              {isExpired && (
+                <Badge variant="destructive" className="ml-2">Expired</Badge>
+              )}
+              {isExpiringSoon && !isExpired && (
+                <Badge variant="outline" className="ml-2 border-orange-500 text-orange-600">Expiring Soon</Badge>
+              )}
+              {hasInsurance && !isExpired && !isExpiringSoon && (
+                <Badge variant="secondary" className="ml-2">Active</Badge>
               )}
             </span>
             <ChevronDown className={cn(
@@ -1384,279 +1587,101 @@ function ReservationsSection({ slipId, reservations }: {
         <CollapsibleContent>
           <CardContent className="pt-0 border-t">
             <div className="py-4 space-y-4">
-              {/* Add Reservation Button */}
-              {!showForm && (
-                <Button variant="outline" className="w-full gap-2" onClick={() => setShowForm(true)}>
-                  <CalendarPlus className="h-4 w-4" /> Create Reservation
-                </Button>
-              )}
-
-              {/* Reservation Form */}
-              {showForm && (
-                <Card className="border-primary/20">
-                  <CardContent className="pt-4">
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Start Date *</Label>
-                          <Input
-                            type="date"
-                            min={today}
-                            value={formData.startDate}
-                            onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>End Date *</Label>
-                          <Input
-                            type="date"
-                            min={formData.startDate || today}
-                            value={formData.endDate}
-                            onChange={(e) => setFormData({...formData, endDate: e.target.value})}
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Reserved By *</Label>
-                        <Input
-                          placeholder="Name of person reserving"
-                          value={formData.reservedBy}
-                          onChange={(e) => setFormData({...formData, reservedBy: e.target.value})}
-                          required
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Email *</Label>
-                          <Input
-                            type="email"
-                            placeholder="email@example.com"
-                            value={formData.email}
-                            onChange={(e) => setFormData({...formData, email: e.target.value})}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Phone</Label>
-                          <Input
-                            placeholder="(555) 123-4567"
-                            value={formData.phone}
-                            onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Boat Information</Label>
-                        <Input
-                          placeholder="Boat name, type, length"
-                          value={formData.boatInfo}
-                          onChange={(e) => setFormData({...formData, boatInfo: e.target.value})}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Reason/Notes</Label>
-                        <Input
-                          placeholder="Purpose of reservation"
-                          value={formData.reason}
-                          onChange={(e) => setFormData({...formData, reason: e.target.value})}
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button type="submit" className="flex-1 bg-[#1f2937] hover:bg-[#374151]" disabled={createReservationMutation.isPending}>
-                          {createReservationMutation.isPending ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Creating...
-                            </>
-                          ) : (
-                            'Create Reservation'
-                          )}
-                        </Button>
-                        <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
-                          Cancel
-                        </Button>
-                      </div>
-                    </form>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Calendar View */}
-              <Card className="border-muted">
-                <CardContent className="p-4">
-                  {/* Calendar Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setCalendarMonth(subMonths(calendarMonth, 1))}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <h4 className="font-semibold">
-                      {format(calendarMonth, 'MMMM yyyy')}
-                    </h4>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setCalendarMonth(addMonths(calendarMonth, 1))}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {/* Calendar Grid */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {/* Day headers */}
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                      <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
-                        {day}
-                      </div>
-                    ))}
-
-                    {/* Empty cells for days before month starts */}
-                    {Array.from({ length: startDayOfWeek }).map((_, i) => (
-                      <div key={`empty-${i}`} className="aspect-square" />
-                    ))}
-
-                    {/* Calendar days */}
-                    {calendarDays.map(day => {
-                      const reservation = getReservationForDate(day);
-                      const isReserved = !!reservation;
-                      const isTodayDate = isToday(day);
-                      const isPast = day < todayDate && !isSameDay(day, todayDate);
-
-                      return (
-                        <Popover key={day.toISOString()}>
-                          <PopoverTrigger asChild>
-                            <button
-                              type="button"
-                              disabled={!isReserved}
-                              className={cn(
-                                'aspect-square flex items-center justify-center text-sm rounded-md transition-colors',
-                                isPast && 'text-muted-foreground/50',
-                                isTodayDate && 'ring-2 ring-primary ring-offset-1',
-                                isReserved && 'bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer',
-                                !isReserved && !isPast && 'hover:bg-muted',
-                                !isReserved && 'cursor-default'
-                              )}
-                            >
-                              {format(day, 'd')}
-                            </button>
-                          </PopoverTrigger>
-                          {reservation && (
-                            <PopoverContent className="w-64 p-3">
-                              <div className="space-y-2">
-                                <div className="font-semibold text-sm">
-                                  {format(parseISO(reservation.startDate), 'MMM d')} - {format(parseISO(reservation.endDate), 'MMM d')}
-                                </div>
-                                <div className="text-sm">
-                                  <span className="font-medium">Reserved by:</span> {reservation.reservedBy}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  <a href={`mailto:${reservation.email}`} className="hover:underline">
-                                    {reservation.email}
-                                  </a>
-                                </div>
-                                {reservation.boatInfo && (
-                                  <div className="text-sm text-muted-foreground">
-                                    <span className="font-medium">Boat:</span> {reservation.boatInfo}
-                                  </div>
-                                )}
-                                {reservation.reason && (
-                                  <div className="text-sm text-muted-foreground italic">
-                                    {reservation.reason}
-                                  </div>
-                                )}
-                              </div>
-                            </PopoverContent>
-                          )}
-                        </Popover>
-                      );
-                    })}
-                  </div>
-
-                  {/* Legend */}
-                  <div className="flex items-center gap-4 mt-4 pt-4 border-t text-xs text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded bg-primary" />
-                      <span>Reserved</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded bg-background border" />
-                      <span>Available</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Reservations List */}
-              {sortedReservations.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4 italic">
-                  No upcoming reservations
-                </p>
+              {!hasInsurance ? (
+                <div className="text-center py-6">
+                  <Shield className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+                  <p className="text-muted-foreground italic">
+                    No insurance information on file
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Click "Edit Details" above to add liability insurance documentation
+                  </p>
+                </div>
               ) : (
-                <div className="space-y-3">
-                  <h4 className="font-medium text-sm text-muted-foreground">Upcoming Reservations</h4>
-                  {sortedReservations.map((reservation) => {
-                    const isActive = reservation.startDate <= today && reservation.endDate >= today;
+                <div className="space-y-4">
+                  {/* Insurance Status Card */}
+                  {isExpired && (
+                    <Card className="bg-red-50 border-red-200">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 text-red-800">
+                          <AlertTriangle className="h-5 w-5" />
+                          <span className="font-medium">Insurance Expired</span>
+                        </div>
+                        <p className="text-sm text-red-700 mt-1">
+                          Policy expired on {format(parseISO(slip.insuranceExpiration!), 'MMMM d, yyyy')}. Please update with current insurance information.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {isExpiringSoon && !isExpired && (
+                    <Card className="bg-orange-50 border-orange-200">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 text-orange-800">
+                          <AlertTriangle className="h-5 w-5" />
+                          <span className="font-medium">Insurance Expiring Soon</span>
+                        </div>
+                        <p className="text-sm text-orange-700 mt-1">
+                          Policy expires on {format(parseISO(slip.insuranceExpiration!), 'MMMM d, yyyy')}. Please ensure renewal is in progress.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
 
-                    return (
-                      <Card key={reservation.id} className={cn(
-                        'shadow-sm',
-                        isActive && 'border-primary bg-primary/5'
-                      )}>
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">
-                                  {format(parseISO(reservation.startDate), 'MMM d')} - {format(parseISO(reservation.endDate), 'MMM d, yyyy')}
-                                </span>
-                                {isActive && (
-                                  <Badge className="bg-primary text-primary-foreground text-xs">Active</Badge>
-                                )}
-                                <Badge variant="outline" className="text-xs">{reservation.status}</Badge>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <User className="h-3 w-3 text-muted-foreground" />
-                                <span>{reservation.reservedBy}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Mail className="h-3 w-3" />
-                                <a href={`mailto:${reservation.email}`} className="hover:underline">
-                                  {reservation.email}
-                                </a>
-                              </div>
-                              {reservation.boatInfo && (
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Anchor className="h-3 w-3" />
-                                  <span>{reservation.boatInfo}</span>
-                                </div>
-                              )}
-                              {reservation.reason && (
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  {reservation.reason}
-                                </p>
-                              )}
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => deleteReservationMutation.mutate(reservation.id)}
-                              title="Delete reservation"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                  {/* Insurance Details */}
+                  <div className="grid gap-4">
+                    {slip.insuranceProvider && (
+                      <div className="flex items-start gap-3">
+                        <Shield className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">Insurance Provider</p>
+                          <p className="text-muted-foreground">{slip.insuranceProvider}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {slip.insurancePolicyNumber && (
+                      <div className="flex items-start gap-3">
+                        <CreditCard className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">Policy Number</p>
+                          <p className="text-muted-foreground font-mono">{slip.insurancePolicyNumber}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {slip.insuranceExpiration && (
+                      <div className="flex items-start gap-3">
+                        <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">Expiration Date</p>
+                          <p className={cn(
+                            'text-muted-foreground',
+                            isExpired && 'text-red-600 font-medium',
+                            isExpiringSoon && !isExpired && 'text-orange-600 font-medium'
+                          )}>
+                            {format(parseISO(slip.insuranceExpiration), 'MMMM d, yyyy')}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {slip.liabilityCoverage && (
+                      <div className="flex items-start gap-3">
+                        <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">Liability Coverage</p>
+                          <p className="text-muted-foreground">${slip.liabilityCoverage.toLocaleString()}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {slip.insuranceNotes && (
+                      <div className="pt-2 border-t">
+                        <p className="text-sm font-medium mb-1">Notes</p>
+                        <p className="text-sm text-muted-foreground">{slip.insuranceNotes}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

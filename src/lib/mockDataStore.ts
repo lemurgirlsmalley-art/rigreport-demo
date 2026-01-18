@@ -1,12 +1,12 @@
 import type {
   Boat, Equipment, MaintenanceEntry, Reservation,
-  Slip, SlipMember, SlipMemberAssignment, SlipBoatAssignment, SlipPayment, SlipReservation
+  Slip, SlipMember, SlipMemberAssignment, SlipBoat, SlipPayment, SlipReservation
 } from './types';
 import { MOCK_BOATS, MOCK_EQUIPMENT, MOCK_MAINTENANCE, MOCK_SLIPS, MOCK_SLIP_MEMBERS } from './mockData';
 import { generateId } from './utils';
 
 const STORAGE_PREFIX = 'rigreport_demo_';
-const DATA_VERSION = '5'; // Increment this to force a data reset
+const DATA_VERSION = '6'; // Increment this to force a data reset
 
 class MockDataStore {
   private boats: Boat[];
@@ -16,7 +16,7 @@ class MockDataStore {
   private slips: Slip[];
   private slipMembers: SlipMember[];
   private slipMemberAssignments: SlipMemberAssignment[];
-  private slipBoatAssignments: SlipBoatAssignment[];
+  private slipBoats: SlipBoat[];
   private slipPayments: SlipPayment[];
   private slipReservations: SlipReservation[];
 
@@ -32,7 +32,7 @@ class MockDataStore {
       localStorage.removeItem(`${STORAGE_PREFIX}slips`);
       localStorage.removeItem(`${STORAGE_PREFIX}slipMembers`);
       localStorage.removeItem(`${STORAGE_PREFIX}slipMemberAssignments`);
-      localStorage.removeItem(`${STORAGE_PREFIX}slipBoatAssignments`);
+      localStorage.removeItem(`${STORAGE_PREFIX}slipBoats`);
       localStorage.removeItem(`${STORAGE_PREFIX}slipPayments`);
       localStorage.removeItem(`${STORAGE_PREFIX}slipReservations`);
       localStorage.setItem(`${STORAGE_PREFIX}version`, DATA_VERSION);
@@ -45,7 +45,7 @@ class MockDataStore {
     this.slips = this.load('slips') || [...MOCK_SLIPS];
     this.slipMembers = this.load('slipMembers') || [...MOCK_SLIP_MEMBERS];
     this.slipMemberAssignments = this.load('slipMemberAssignments') || [];
-    this.slipBoatAssignments = this.load('slipBoatAssignments') || [];
+    this.slipBoats = this.load('slipBoats') || [];
     this.slipPayments = this.load('slipPayments') || [];
     this.slipReservations = this.load('slipReservations') || [];
   }
@@ -301,11 +301,11 @@ class MockDataStore {
     this.save('slips', this.slips);
     // Also delete related data
     this.slipMemberAssignments = this.slipMemberAssignments.filter((a) => a.slipId !== id);
-    this.slipBoatAssignments = this.slipBoatAssignments.filter((a) => a.slipId !== id);
+    this.slipBoats = this.slipBoats.filter((a) => a.slipId !== id);
     this.slipPayments = this.slipPayments.filter((p) => p.slipId !== id);
     this.slipReservations = this.slipReservations.filter((r) => r.slipId !== id);
     this.save('slipMemberAssignments', this.slipMemberAssignments);
-    this.save('slipBoatAssignments', this.slipBoatAssignments);
+    this.save('slipBoats', this.slipBoats);
     this.save('slipPayments', this.slipPayments);
     this.save('slipReservations', this.slipReservations);
   }
@@ -387,33 +387,52 @@ class MockDataStore {
     this.save('slipMemberAssignments', this.slipMemberAssignments);
   }
 
-  // Slip Boat Assignment CRUD operations
-  async getSlipBoatAssignments(slipId?: string): Promise<SlipBoatAssignment[]> {
+  // Slip Boat CRUD operations
+  async getSlipBoats(slipId?: string): Promise<SlipBoat[]> {
     await this.simulateDelay();
     if (slipId) {
-      return this.slipBoatAssignments.filter((a) => a.slipId === slipId);
+      return this.slipBoats.filter((b) => b.slipId === slipId);
     }
-    return [...this.slipBoatAssignments];
+    return [...this.slipBoats];
   }
 
-  async createSlipBoatAssignment(
-    data: Omit<SlipBoatAssignment, 'id' | 'assignedAt'>
-  ): Promise<SlipBoatAssignment> {
+  async createSlipBoat(
+    data: Omit<SlipBoat, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<SlipBoat> {
     await this.simulateDelay();
-    const assignment: SlipBoatAssignment = {
+    const now = new Date().toISOString();
+    const boat: SlipBoat = {
       ...data,
       id: generateId(),
-      assignedAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     };
-    this.slipBoatAssignments = [...this.slipBoatAssignments, assignment];
-    this.save('slipBoatAssignments', this.slipBoatAssignments);
-    return assignment;
+    this.slipBoats = [...this.slipBoats, boat];
+    this.save('slipBoats', this.slipBoats);
+    return boat;
   }
 
-  async deleteSlipBoatAssignment(id: string): Promise<void> {
+  async updateSlipBoat(id: string, updates: Partial<SlipBoat>): Promise<SlipBoat> {
     await this.simulateDelay();
-    this.slipBoatAssignments = this.slipBoatAssignments.filter((a) => a.id !== id);
-    this.save('slipBoatAssignments', this.slipBoatAssignments);
+    const index = this.slipBoats.findIndex((b) => b.id === id);
+    if (index === -1) {
+      throw new Error(`Slip boat with id ${id} not found`);
+    }
+    const updatedBoat: SlipBoat = {
+      ...this.slipBoats[index],
+      ...updates,
+      id,
+      updatedAt: new Date().toISOString(),
+    };
+    this.slipBoats = this.slipBoats.map((b) => (b.id === id ? updatedBoat : b));
+    this.save('slipBoats', this.slipBoats);
+    return updatedBoat;
+  }
+
+  async deleteSlipBoat(id: string): Promise<void> {
+    await this.simulateDelay();
+    this.slipBoats = this.slipBoats.filter((b) => b.id !== id);
+    this.save('slipBoats', this.slipBoats);
   }
 
   // Slip Payment CRUD operations
@@ -481,7 +500,7 @@ class MockDataStore {
     this.slips = [...MOCK_SLIPS];
     this.slipMembers = [...MOCK_SLIP_MEMBERS];
     this.slipMemberAssignments = [];
-    this.slipBoatAssignments = [];
+    this.slipBoats = [];
     this.slipPayments = [];
     this.slipReservations = [];
     this.save('boats', this.boats);
@@ -491,7 +510,7 @@ class MockDataStore {
     this.save('slips', this.slips);
     this.save('slipMembers', this.slipMembers);
     this.save('slipMemberAssignments', this.slipMemberAssignments);
-    this.save('slipBoatAssignments', this.slipBoatAssignments);
+    this.save('slipBoats', this.slipBoats);
     this.save('slipPayments', this.slipPayments);
     this.save('slipReservations', this.slipReservations);
   }
@@ -505,7 +524,7 @@ class MockDataStore {
     localStorage.removeItem(`${STORAGE_PREFIX}slips`);
     localStorage.removeItem(`${STORAGE_PREFIX}slipMembers`);
     localStorage.removeItem(`${STORAGE_PREFIX}slipMemberAssignments`);
-    localStorage.removeItem(`${STORAGE_PREFIX}slipBoatAssignments`);
+    localStorage.removeItem(`${STORAGE_PREFIX}slipBoats`);
     localStorage.removeItem(`${STORAGE_PREFIX}slipPayments`);
     localStorage.removeItem(`${STORAGE_PREFIX}slipReservations`);
     this.boats = [...MOCK_BOATS];
@@ -515,7 +534,7 @@ class MockDataStore {
     this.slips = [...MOCK_SLIPS];
     this.slipMembers = [...MOCK_SLIP_MEMBERS];
     this.slipMemberAssignments = [];
-    this.slipBoatAssignments = [];
+    this.slipBoats = [];
     this.slipPayments = [];
     this.slipReservations = [];
   }

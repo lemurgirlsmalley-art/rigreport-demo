@@ -14,6 +14,7 @@ import {
   Shield,
   Check,
   X,
+  Waves,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDemoAuth } from '@/hooks/use-demo-auth';
@@ -90,6 +91,7 @@ const navigation = [
   { name: 'Manage Fleet', href: '/fleet', icon: Ship },
   { name: 'Fleet Map', href: '/map', icon: Map },
   { name: 'Manage Equipment', href: '/equipment', icon: Package },
+  { name: 'Manage Slips', href: '/slips', icon: Waves, requiresPermission: 'canManageUsers' as const },
   { name: 'Find a Boat', href: '/regatta', icon: Search },
   { name: 'Report Damage', href: '/report', icon: AlertTriangle, highlight: true, requiresPermission: 'canReportDamage' as const },
   { name: 'User Management', href: '/users', icon: Users, badge: 2, requiresPermission: 'canManageUsers' as const },

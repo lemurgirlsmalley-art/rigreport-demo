@@ -143,3 +143,97 @@ export interface Reservation {
   reason?: string;
   createdAt: string;
 }
+
+// Slip types for marina management
+export type SlipStatus = 'available' | 'occupied' | 'reserved' | 'maintenance' | 'unavailable';
+export type SlipType = 'standard' | 'large' | 'covered' | 'end-tie' | 't-head';
+export type MemberAssignmentRole = 'primary' | 'secondary' | 'emergency';
+export type PaymentMethod = 'check' | 'cash' | 'card' | 'transfer' | 'other';
+export type PaymentStatus = 'completed' | 'pending' | 'refunded';
+export type SlipReservationStatus = 'pending' | 'confirmed' | 'cancelled';
+
+export interface Slip {
+  id: string;
+  slipNumber: string;
+  displayName: string;
+  dock: string;
+  location?: string;
+  slipType: SlipType;
+  length?: string;
+  width?: string;
+  depth?: string;
+  hasElectric: boolean;
+  hasWater: boolean;
+  status: SlipStatus;
+  monthlyRate?: number;
+  annualRate?: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SlipMember {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  notes?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SlipMemberAssignment {
+  id: string;
+  slipId: string;
+  memberId: string;
+  role: MemberAssignmentRole;
+  startDate?: string;
+  endDate?: string;
+  createdAt: string;
+}
+
+export interface SlipBoatAssignment {
+  id: string;
+  slipId: string;
+  boatId: string;
+  notes?: string;
+  assignedAt: string;
+}
+
+export interface SlipPayment {
+  id: string;
+  slipId: string;
+  memberId?: string;
+  amount: number;
+  paymentDate: string;
+  paymentMethod: PaymentMethod;
+  periodStart?: string;
+  periodEnd?: string;
+  status: PaymentStatus;
+  referenceNumber?: string;
+  notes?: string;
+  recordedBy?: string;
+  createdAt: string;
+}
+
+export interface SlipReservation {
+  id: string;
+  slipId: string;
+  startDate: string;
+  endDate: string;
+  reservedBy: string;
+  email: string;
+  phone?: string;
+  boatInfo?: string;
+  reason?: string;
+  status: SlipReservationStatus;
+  createdAt: string;
+}

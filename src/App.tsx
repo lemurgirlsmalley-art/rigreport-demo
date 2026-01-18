@@ -17,6 +17,8 @@ import { EquipmentPage } from '@/pages/equipment';
 import { ReportDamagePage } from '@/pages/report-damage';
 import { UserManagementPage } from '@/pages/user-management';
 import { NotificationSettingsPage } from '@/pages/notification-settings';
+import { SlipsPage } from '@/pages/slips';
+import { SlipDetailPage } from '@/pages/slip-detail';
 import { NotFoundPage } from '@/pages/not-found';
 
 function App() {
@@ -36,6 +38,8 @@ function App() {
               <Route path="/report" component={ReportDamagePage} />
               <Route path="/users" component={UserManagementPage} />
               <Route path="/notifications" component={NotificationSettingsPage} />
+              <Route path="/slips" component={SlipsPage} />
+              <Route path="/slips/:id" component={SlipDetailPage} />
               <Route component={NotFoundPage} />
             </Switch>
             <FeatureModal />

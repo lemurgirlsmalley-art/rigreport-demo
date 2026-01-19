@@ -1,28 +1,50 @@
 import { useState } from 'react';
-import { Clock, CheckCircle, Shield, Users, Edit, Trash2, Check, X } from 'lucide-react';
+import { Clock, CheckCircle, Shield, Users, Trash2, Check, X, Ship, Anchor } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useDemoAuth } from '@/hooks/use-demo-auth';
 import { useFeatureModal } from '@/hooks/use-feature-modal';
+import { mockStore } from '@/lib/mockDataStore';
+import { useQuery } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { Role } from '@/lib/types';
 
-// Mock users for demo
-const MOCK_USERS = [
-  { id: '1', name: 'Sarah Chen', email: 'sarah@example.com', role: 'admin', status: 'active', avatar: 'S' },
-  { id: '2', name: 'Mike Wilson', email: 'mike@example.com', role: 'coach', status: 'active', avatar: 'M' },
-  { id: '3', name: 'Emma Davis', email: 'emma@example.com', role: 'coach', status: 'active', avatar: 'E' },
-  { id: '4', name: 'Alex Johnson', email: 'alex@example.com', role: 'volunteer', status: 'active', avatar: 'A' },
-  { id: '5', name: 'Jamie Lee', email: 'jamie@example.com', role: 'volunteer', status: 'active', avatar: 'J' },
-  { id: '6', name: 'Taylor Smith', email: 'taylor@example.com', role: 'junior_sailor', status: 'active', avatar: 'T' },
-  { id: '7', name: 'Jordan Brown', email: 'jordan@example.com', role: 'junior_sailor', status: 'active', avatar: 'J' },
+const ROLES: { value: Role; label: string }[] = [
+  { value: 'admin', label: 'Administrator' },
+  { value: 'coach', label: 'Coach' },
+  { value: 'volunteer', label: 'Volunteer' },
+  { value: 'junior_sailor', label: 'Junior Sailor' },
 ];
 
-// Mock pending users for demo
-const MOCK_PENDING_USERS = [
-  { id: 'p1', name: 'Chris Martinez', email: 'chris.martinez@example.com', role: 'coach', requestedAt: '2024-12-06T14:30:00Z', avatar: 'C' },
-  { id: 'p2', name: 'Riley Thompson', email: 'riley.t@example.com', role: 'admin', requestedAt: '2024-12-05T09:15:00Z', avatar: 'R' },
-];
+function getRoleBadgeColor(role: Role) {
+  switch (role) {
+    case 'admin': return 'bg-purple-100 text-purple-700';
+    case 'coach': return 'bg-blue-100 text-blue-700';
+    case 'volunteer': return 'bg-green-100 text-green-700';
+    case 'junior_sailor': return 'bg-orange-100 text-orange-700';
+    default: return 'bg-gray-100 text-gray-700';
+  }
+}
+
+function getRoleIcon(role: Role) {
+  switch (role) {
+    case 'admin': return Shield;
+    case 'coach': return Ship;
+    case 'volunteer': return Users;
+    case 'junior_sailor': return Anchor;
+    default: return Users;
+  }
+}
 
 function StatCard({
   title,
@@ -55,13 +77,19 @@ function StatCard({
 }
 
 export function UserManagementPage() {
-  const { permissions } = useDemoAuth();
+  const { permissions, user: currentUser } = useDemoAuth();
   const { showFeatureModal } = useFeatureModal();
   const [activeTab, setActiveTab] = useState('pending');
 
-  const pendingApprovals = MOCK_PENDING_USERS.length;
-  const activeUsers = MOCK_USERS.length;
-  const admins = MOCK_USERS.filter(u => u.role === 'admin').length;
+  // Fetch all users
+  const { data: allUsers = [], isLoading } = useQuery({
+    queryKey: ['demo-users'],
+    queryFn: () => mockStore.getDemoUsers(),
+  });
+
+  const pendingUsers = allUsers.filter(u => u.status === 'pending');
+  const activeUsers = allUsers.filter(u => u.status === 'active');
+  const adminsCount = allUsers.filter(u => u.role === 'admin' || u.role === 'coach').length;
 
   const formatTimeAgo = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -71,6 +99,23 @@ export function UserManagementPage() {
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
     return `${diffDays} days ago`;
+  };
+
+  // All user management actions use FeatureModal (demo restriction)
+  const handleApproveUser = () => {
+    showFeatureModal('approveUser');
+  };
+
+  const handleDenyUser = () => {
+    showFeatureModal('denyUser');
+  };
+
+  const handleChangeRole = () => {
+    showFeatureModal('changeUserRole');
+  };
+
+  const handleDeleteUser = () => {
+    showFeatureModal('deleteUser');
   };
 
   if (!permissions.canManageUsers) {
@@ -102,21 +147,21 @@ export function UserManagementPage() {
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
             title="Pending Approval"
-            value={pendingApprovals}
+            value={pendingUsers.length}
             icon={Clock}
             iconBg="bg-orange-50"
             iconColor="text-orange-500"
           />
           <StatCard
             title="Active Users"
-            value={activeUsers}
+            value={activeUsers.length}
             icon={CheckCircle}
             iconBg="bg-green-50"
             iconColor="text-green-500"
           />
           <StatCard
             title="Administrators"
-            value={admins}
+            value={adminsCount}
             icon={Shield}
             iconBg="bg-blue-50"
             iconColor="text-blue-500"
@@ -135,6 +180,11 @@ export function UserManagementPage() {
               <TabsList className="bg-gray-100 mb-6">
                 <TabsTrigger value="pending" className="data-[state=active]:bg-white">
                   Pending Approval
+                  {pendingUsers.length > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {pendingUsers.length}
+                    </Badge>
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="all" className="data-[state=active]:bg-white">
                   All Users
@@ -142,107 +192,137 @@ export function UserManagementPage() {
               </TabsList>
 
               <TabsContent value="pending">
-                {pendingApprovals === 0 ? (
+                {isLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2].map((i) => (
+                      <Skeleton key={i} className="h-20 w-full" />
+                    ))}
+                  </div>
+                ) : pendingUsers.length === 0 ? (
                   <div className="text-center py-12">
                     <Users className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
                     <p className="text-muted-foreground">No pending registrations</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {MOCK_PENDING_USERS.map((user) => (
-                      <div
-                        key={user.id}
-                        className="flex items-center justify-between p-4 rounded-lg border border-orange-200 bg-orange-50/50"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 text-white font-semibold">
-                            {user.avatar}
+                    {pendingUsers.map((user) => {
+                      const RoleIcon = getRoleIcon(user.role);
+                      return (
+                        <div
+                          key={user.id}
+                          className="flex items-center justify-between p-4 rounded-lg border border-orange-200 bg-orange-50/50"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 text-white font-semibold">
+                              {user.name.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="font-medium">{user.name}</p>
+                              <p className="text-sm text-muted-foreground">{user.email}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium">{user.name}</p>
-                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right mr-2">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
+                                <RoleIcon className="h-3 w-3" />
+                                Requested: {ROLES.find(r => r.value === user.role)?.label || user.role}
+                              </span>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatTimeAgo(user.createdAt)}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 gap-1"
+                              onClick={handleApproveUser}
+                            >
+                              <Check className="h-4 w-4" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-red-300 text-red-600 hover:bg-red-50 gap-1"
+                              onClick={handleDenyUser}
+                            >
+                              <X className="h-4 w-4" />
+                              Deny
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right mr-2">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              user.role === 'admin'
-                                ? 'bg-purple-100 text-purple-700'
-                                : user.role === 'coach'
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-gray-100 text-gray-700'
-                            }`}>
-                              Requested: {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                            </span>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {formatTimeAgo(user.requestedAt)}
-                            </p>
-                          </div>
-                          <Button
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700 gap-1"
-                            onClick={() => showFeatureModal('editUserRole')}
-                          >
-                            <Check className="h-4 w-4" />
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-red-300 text-red-600 hover:bg-red-50 gap-1"
-                            onClick={() => showFeatureModal('deleteUser')}
-                          >
-                            <X className="h-4 w-4" />
-                            Deny
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </TabsContent>
 
               <TabsContent value="all">
-                <div className="space-y-3">
-                  {MOCK_USERS.map((user) => (
-                    <div
-                      key={user.id}
-                      className="flex items-center justify-between p-4 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-500 text-white font-semibold">
-                          {user.avatar}
+                {isLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3, 4].map((i) => (
+                      <Skeleton key={i} className="h-16 w-full" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {activeUsers.map((user) => {
+                      const isCurrentUser = currentUser?.name === user.name;
+                      const RoleIcon = getRoleIcon(user.role);
+                      return (
+                        <div
+                          key={user.id}
+                          className="flex items-center justify-between p-4 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-500 text-white font-semibold">
+                              {user.name.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium">{user.name}</p>
+                                {isCurrentUser && (
+                                  <Badge variant="outline" className="text-xs">You</Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">{user.email}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Select
+                              value={user.role}
+                              onValueChange={handleChangeRole}
+                              disabled={isCurrentUser}
+                            >
+                              <SelectTrigger className={`w-[150px] ${getRoleBadgeColor(user.role)}`}>
+                                <div className="flex items-center gap-1">
+                                  <RoleIcon className="h-3 w-3" />
+                                  <SelectValue />
+                                </div>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ROLES.map((role) => (
+                                  <SelectItem key={role.value} value={role.value}>
+                                    {role.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {!isCurrentUser && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                onClick={handleDeleteUser}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{user.name}</p>
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          user.role === 'admin'
-                            ? 'bg-purple-100 text-purple-700'
-                            : user.role === 'coach'
-                            ? 'bg-blue-100 text-blue-700'
-                            : user.role === 'volunteer'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}>
-                          {user.role.charAt(0).toUpperCase() + user.role.slice(1).replace('_', ' ')}
-                        </span>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                          Active
-                        </span>
-                        <Button variant="ghost" size="icon" onClick={() => showFeatureModal('editUserRole')}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => showFeatureModal('deleteUser')}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </CardContent>

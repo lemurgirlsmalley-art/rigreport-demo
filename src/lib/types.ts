@@ -120,6 +120,8 @@ export interface DemoUser {
   email: string;
   role: Role;
   organization: Organization;
+  status: 'pending' | 'active';
+  createdAt: string;
 }
 
 export interface Permissions {

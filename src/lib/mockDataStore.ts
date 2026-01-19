@@ -1,14 +1,17 @@
 import type {
   Boat, Equipment, MaintenanceEntry, Reservation,
-  Slip, SlipMember, SlipMemberAssignment, SlipBoat, SlipPayment, SlipReservation
+  Slip, SlipMember, SlipMemberAssignment, SlipBoat, SlipPayment, SlipReservation,
+  DemoUser, Role
 } from './types';
 import { MOCK_BOATS, MOCK_EQUIPMENT, MOCK_MAINTENANCE, MOCK_SLIPS, MOCK_SLIP_MEMBERS } from './mockData';
 import { generateId } from './utils';
 
 const STORAGE_PREFIX = 'rigreport_demo_';
-const DATA_VERSION = '7'; // Increment this to force a data reset
+const DATA_VERSION = '8'; // Increment this to force a data reset
+const DEMO_EXPIRY_MS = 24 * 60 * 60 * 1000; // 1 day in milliseconds
 
 class MockDataStore {
+  private demoStartTime: number;
   private boats: Boat[];
   private equipment: Equipment[];
   private maintenance: MaintenanceEntry[];
@@ -19,6 +22,7 @@ class MockDataStore {
   private slipBoats: SlipBoat[];
   private slipPayments: SlipPayment[];
   private slipReservations: SlipReservation[];
+  private demoUsers: DemoUser[];
 
   constructor() {
     // Check if we need to reset due to version change
@@ -35,7 +39,18 @@ class MockDataStore {
       localStorage.removeItem(`${STORAGE_PREFIX}slipBoats`);
       localStorage.removeItem(`${STORAGE_PREFIX}slipPayments`);
       localStorage.removeItem(`${STORAGE_PREFIX}slipReservations`);
+      localStorage.removeItem(`${STORAGE_PREFIX}demoUsers`);
+      localStorage.removeItem(`${STORAGE_PREFIX}demoStartTime`);
       localStorage.setItem(`${STORAGE_PREFIX}version`, DATA_VERSION);
+    }
+
+    // Initialize or load demo start time
+    const storedStartTime = localStorage.getItem(`${STORAGE_PREFIX}demoStartTime`);
+    if (storedStartTime) {
+      this.demoStartTime = parseInt(storedStartTime, 10);
+    } else {
+      this.demoStartTime = Date.now();
+      localStorage.setItem(`${STORAGE_PREFIX}demoStartTime`, this.demoStartTime.toString());
     }
 
     this.boats = this.load('boats') || [...MOCK_BOATS];
@@ -48,6 +63,16 @@ class MockDataStore {
     this.slipBoats = this.load('slipBoats') || [];
     this.slipPayments = this.load('slipPayments') || [];
     this.slipReservations = this.load('slipReservations') || [];
+    this.demoUsers = this.load('demoUsers') || [
+      { id: 'user-1', name: 'Sarah Chen', email: 'sarah@example.com', role: 'admin', organization: 'EO', status: 'active', createdAt: '2024-01-01T00:00:00Z' },
+      { id: 'user-2', name: 'Mike Wilson', email: 'mike@example.com', role: 'coach', organization: 'EO', status: 'active', createdAt: '2024-01-15T00:00:00Z' },
+      { id: 'user-3', name: 'Emma Davis', email: 'emma@example.com', role: 'coach', organization: 'YOH', status: 'active', createdAt: '2024-02-01T00:00:00Z' },
+      { id: 'user-4', name: 'Alex Johnson', email: 'alex@example.com', role: 'volunteer', organization: 'EO', status: 'active', createdAt: '2024-02-15T00:00:00Z' },
+      { id: 'user-5', name: 'Jamie Lee', email: 'jamie@example.com', role: 'volunteer', organization: 'DSC', status: 'active', createdAt: '2024-03-01T00:00:00Z' },
+      { id: 'user-6', name: 'Taylor Smith', email: 'taylor@example.com', role: 'junior_sailor', organization: 'EO', status: 'active', createdAt: '2024-03-15T00:00:00Z' },
+      { id: 'user-7', name: 'Chris Martinez', email: 'chris.martinez@example.com', role: 'coach', organization: 'EO', status: 'pending', createdAt: '2024-12-06T14:30:00Z' },
+      { id: 'user-8', name: 'Riley Thompson', email: 'riley.t@example.com', role: 'admin', organization: 'YOH', status: 'pending', createdAt: '2024-12-05T09:15:00Z' },
+    ];
   }
 
   // Simulate network delay
@@ -71,6 +96,23 @@ class MockDataStore {
     } catch (error) {
       console.error('Failed to save to localStorage:', error);
     }
+  }
+
+  // Demo expiration check - returns true if demo has been active for more than 1 day
+  isDemoExpired(): boolean {
+    const elapsed = Date.now() - this.demoStartTime;
+    return elapsed >= DEMO_EXPIRY_MS;
+  }
+
+  // Get remaining demo time in milliseconds
+  getDemoTimeRemaining(): number {
+    const elapsed = Date.now() - this.demoStartTime;
+    return Math.max(0, DEMO_EXPIRY_MS - elapsed);
+  }
+
+  // Get demo start time
+  getDemoStartTime(): number {
+    return this.demoStartTime;
   }
 
   // Boat CRUD operations
@@ -217,6 +259,16 @@ class MockDataStore {
     this.maintenance = this.maintenance.map((m) => (m.id === id ? updatedEntry : m));
     this.save('maintenance', this.maintenance);
     return updatedEntry;
+  }
+
+  async deleteMaintenance(id: string): Promise<void> {
+    await this.simulateDelay();
+    const index = this.maintenance.findIndex((m) => m.id === id);
+    if (index === -1) {
+      throw new Error(`Maintenance entry with id ${id} not found`);
+    }
+    this.maintenance = this.maintenance.filter((m) => m.id !== id);
+    this.save('maintenance', this.maintenance);
   }
 
   // Reservation CRUD operations
@@ -489,6 +541,50 @@ class MockDataStore {
     await this.simulateDelay();
     this.slipReservations = this.slipReservations.filter((r) => r.id !== id);
     this.save('slipReservations', this.slipReservations);
+  }
+
+  // Demo User CRUD operations
+  async getDemoUsers(status?: 'pending' | 'active'): Promise<DemoUser[]> {
+    await this.simulateDelay();
+    if (status) {
+      return this.demoUsers.filter((u) => u.status === status);
+    }
+    return [...this.demoUsers];
+  }
+
+  async getDemoUser(id: string): Promise<DemoUser | undefined> {
+    await this.simulateDelay();
+    return this.demoUsers.find((u) => u.id === id);
+  }
+
+  async updateDemoUser(id: string, updates: Partial<DemoUser>): Promise<DemoUser> {
+    await this.simulateDelay();
+    const index = this.demoUsers.findIndex((u) => u.id === id);
+    if (index === -1) {
+      throw new Error(`User with id ${id} not found`);
+    }
+    const updatedUser: DemoUser = {
+      ...this.demoUsers[index],
+      ...updates,
+      id,
+    };
+    this.demoUsers = this.demoUsers.map((u) => (u.id === id ? updatedUser : u));
+    this.save('demoUsers', this.demoUsers);
+    return updatedUser;
+  }
+
+  async approveDemoUser(id: string): Promise<DemoUser> {
+    return this.updateDemoUser(id, { status: 'active' });
+  }
+
+  async updateDemoUserRole(id: string, role: Role): Promise<DemoUser> {
+    return this.updateDemoUser(id, { role });
+  }
+
+  async deleteDemoUser(id: string): Promise<void> {
+    await this.simulateDelay();
+    this.demoUsers = this.demoUsers.filter((u) => u.id !== id);
+    this.save('demoUsers', this.demoUsers);
   }
 
   // Reset to initial state

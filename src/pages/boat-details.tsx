@@ -18,14 +18,19 @@ import {
   X,
   Mail,
   User,
+  Loader2,
+  CheckSquare,
 } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { StatusBadge } from '@/components/StatusBadge';
-import { MaintenanceItem } from '@/components/MaintenanceItem';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -33,16 +38,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useBoat } from '@/hooks/use-boats';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { useReservations, useCreateReservation, useDeleteReservation } from '@/hooks/use-reservations';
 import { useDemoAuth } from '@/hooks/use-demo-auth';
-import { useFeatureModal } from '@/hooks/use-feature-modal';
+import { mockStore } from '@/lib/mockDataStore';
 import { toast } from '@/hooks/use-toast';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDate, getOrganizationName, getOrganizationLogo } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import type { Reservation } from '@/lib/types';
+import type { Boat, BoatStatus, BoatType, Organization, MaintenanceCategory, MaintenanceSeverity, Reservation } from '@/lib/types';
 import {
   format,
   startOfMonth,
@@ -57,6 +79,13 @@ import {
   startOfWeek,
   endOfWeek,
 } from 'date-fns';
+
+const BOAT_TYPES: BoatType[] = [
+  '420', 'Club 420', 'Open BIC', 'Sunfish', 'RS Tera', 'Hobie Wave',
+  'Coach Boat', 'Safety Boat', 'RIB', 'Skiff', 'Pontoon', 'Kayak', 'Canoe', 'Other',
+];
+
+const ORGANIZATIONS: Organization[] = ['EO', 'YOH', 'DSC'];
 
 // Reservations Section Component
 function ReservationsSection({ boatId }: { boatId: string }) {
@@ -118,7 +147,6 @@ function ReservationsSection({ boatId }: { boatId: string }) {
       toast({
         title: 'Reservation Created',
         description: 'Your reservation has been saved',
-        variant: 'success',
       });
 
       setFormData({ startDate: '', endDate: '', reservedBy: '', email: '', reason: '' });
@@ -138,7 +166,6 @@ function ReservationsSection({ boatId }: { boatId: string }) {
       toast({
         title: 'Reservation Deleted',
         description: 'The reservation has been removed',
-        variant: 'success',
       });
     } catch {
       toast({
@@ -366,8 +393,190 @@ export function BoatDetailsPage() {
   const [, setLocation] = useLocation();
   const { boat, isLoading } = useBoat(id);
   const { maintenance, isLoading: maintenanceLoading } = useMaintenance(id);
-  const { permissions } = useDemoAuth();
-  const { showFeatureModal } = useFeatureModal();
+  const { permissions, user } = useDemoAuth();
+  const queryClient = useQueryClient();
+
+  // Dialog states
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  // Edit form state
+  const [editForm, setEditForm] = useState<Partial<Boat>>({});
+
+  // Maintenance log form state
+  const [noteCategory, setNoteCategory] = useState<MaintenanceCategory>('Inspection');
+  const [noteSeverity, setNoteSeverity] = useState<MaintenanceSeverity>('Low');
+  const [noteText, setNoteText] = useState('');
+
+  // Update boat mutation
+  const updateBoatMutation = useMutation({
+    mutationFn: (data: Partial<Boat>) => mockStore.updateBoat(id!, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['boat', id] });
+      queryClient.invalidateQueries({ queryKey: ['boats'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update boat',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Delete boat mutation
+  const deleteBoatMutation = useMutation({
+    mutationFn: () => mockStore.deleteBoat(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['boats'] });
+      toast({
+        title: 'Boat Deleted',
+        description: 'The vessel has been removed from the fleet.',
+      });
+      setLocation('/fleet');
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete boat',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Create maintenance mutation
+  const createMaintenanceMutation = useMutation({
+    mutationFn: (data: {
+      boatId: string;
+      category: MaintenanceCategory;
+      severity: MaintenanceSeverity;
+      description: string;
+      reportedBy: string;
+      status: 'Open' | 'Resolved';
+    }) => mockStore.createMaintenance(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maintenance', id] });
+      queryClient.invalidateQueries({ queryKey: ['boat', id] });
+      queryClient.invalidateQueries({ queryKey: ['boats'] });
+      setNoteText('');
+      setNoteCategory('Inspection');
+      setNoteSeverity('Low');
+      toast({
+        title: noteCategory === 'Inventory' ? 'Inventory Logged' : 'Maintenance Logged',
+        description: 'The entry has been saved to the boat\'s history.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save log entry',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Resolve maintenance mutation
+  const resolveMaintenanceMutation = useMutation({
+    mutationFn: (entryId: string) => mockStore.updateMaintenance(entryId, {
+      status: 'Resolved',
+      resolvedBy: user?.name || 'Demo User',
+      resolvedAt: new Date().toISOString(),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maintenance', id] });
+      queryClient.invalidateQueries({ queryKey: ['boat', id] });
+      queryClient.invalidateQueries({ queryKey: ['boats'] });
+      toast({
+        title: 'Issue Resolved',
+        description: 'Maintenance log marked as resolved.',
+      });
+    },
+  });
+
+  // Delete maintenance mutation
+  const deleteMaintenanceMutation = useMutation({
+    mutationFn: (entryId: string) => mockStore.deleteMaintenance(entryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maintenance', id] });
+      queryClient.invalidateQueries({ queryKey: ['boat', id] });
+      queryClient.invalidateQueries({ queryKey: ['boats'] });
+      toast({
+        title: 'Entry Deleted',
+        description: 'Maintenance entry has been removed.',
+      });
+    },
+  });
+
+  // Status change handlers
+  const handleStatusChange = (newStatus: BoatStatus) => {
+    updateBoatMutation.mutate({ status: newStatus });
+    toast({
+      title: 'Status Updated',
+      description: `Boat marked as ${newStatus}`,
+    });
+  };
+
+  // Flag issue handler
+  const handleFlagIssue = () => {
+    handleStatusChange('Do not sail');
+  };
+
+  // Mark OK handler
+  const handleMarkOK = () => {
+    handleStatusChange('OK');
+  };
+
+  // Edit boat handler
+  const handleEditBoat = () => {
+    if (boat) {
+      setEditForm({
+        displayName: boat.displayName,
+        hullNumber: boat.hullNumber,
+        type: boat.type,
+        organization: boat.organization,
+        location: boat.location,
+        manufacturer: boat.manufacturer,
+        model: boat.model,
+        year: boat.year,
+        color: boat.color,
+        notes: boat.notes,
+        isRegattaPreferred: boat.isRegattaPreferred,
+        latitude: boat.latitude,
+        longitude: boat.longitude,
+      });
+      setIsEditDialogOpen(true);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    updateBoatMutation.mutate(editForm);
+    setIsEditDialogOpen(false);
+    toast({
+      title: 'Boat Updated',
+      description: 'The vessel details have been saved.',
+    });
+  };
+
+  // Save log entry handler
+  const handleSaveLogEntry = () => {
+    if (!noteText && noteCategory !== 'Inventory') {
+      toast({
+        title: 'Description Required',
+        description: 'Please enter a description for this log entry.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    createMaintenanceMutation.mutate({
+      boatId: id!,
+      category: noteCategory,
+      severity: noteCategory === 'Inventory' ? 'Low' : noteSeverity,
+      description: noteText || (noteCategory === 'Inventory' ? 'Inventory check completed' : ''),
+      reportedBy: user?.name || 'Demo User',
+      status: noteCategory === 'Inventory' ? 'Resolved' : 'Open',
+    });
+  };
 
   if (isLoading) {
     return (
@@ -428,13 +637,18 @@ export function BoatDetailsPage() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {/* Status Badge */}
             <StatusBadge status={boat.status} size="lg" />
 
             {/* Action Buttons */}
             {permissions.canReportDamage && (
-              <Button variant="outline" className="gap-2" onClick={() => showFeatureModal('flagIssue')}>
+              <Button
+                variant="outline"
+                className="gap-2 border-red-200 text-red-600 hover:bg-red-50"
+                onClick={handleFlagIssue}
+                disabled={updateBoatMutation.isPending}
+              >
                 <Flag className="h-4 w-4" />
                 Flag Issue
               </Button>
@@ -442,20 +656,26 @@ export function BoatDetailsPage() {
             {permissions.canChangeStatus && (
               <Button
                 className="gap-2 bg-green-500 hover:bg-green-600 text-white"
-                onClick={() => showFeatureModal('markBoatOK')}
+                onClick={handleMarkOK}
+                disabled={updateBoatMutation.isPending}
               >
                 <CheckCircle className="h-4 w-4" />
                 Mark OK
               </Button>
             )}
             {permissions.canEdit && (
-              <Button variant="outline" className="gap-2" onClick={() => showFeatureModal('editBoat')}>
+              <Button variant="outline" className="gap-2" onClick={handleEditBoat}>
                 <Edit className="h-4 w-4" />
                 Edit Details
               </Button>
             )}
             {permissions.canDelete && (
-              <Button variant="outline" size="icon" onClick={() => showFeatureModal('deleteBoat')}>
+              <Button
+                variant="outline"
+                size="icon"
+                className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                onClick={() => setIsDeleteDialogOpen(true)}
+              >
                 <Trash2 className="h-4 w-4" />
               </Button>
             )}
@@ -522,15 +742,13 @@ export function BoatDetailsPage() {
               </CardContent>
             </Card>
 
-            {/* Specifications - Collapsible */}
+            {/* Specifications */}
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="pb-2">
-                <div className="flex items-center justify-between cursor-pointer">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Specifications
-                  </CardTitle>
-                </div>
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Specifications
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="grid gap-3 text-sm">
@@ -597,43 +815,64 @@ export function BoatDetailsPage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Category</label>
-                    <Select defaultValue="inspection">
+                    <Label>Category</Label>
+                    <Select value={noteCategory} onValueChange={(v) => setNoteCategory(v as MaintenanceCategory)}>
                       <SelectTrigger className="bg-white">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="inspection">Routine Inspection</SelectItem>
-                        <SelectItem value="repair">Repair</SelectItem>
-                        <SelectItem value="rigging">Rigging Issue</SelectItem>
-                        <SelectItem value="hull">Hull Damage</SelectItem>
+                        <SelectItem value="Inspection">Routine Inspection</SelectItem>
+                        <SelectItem value="Inventory">Inventory Check</SelectItem>
+                        <SelectItem value="Repair">Repair</SelectItem>
+                        <SelectItem value="Rigging issue">Rigging Issue</SelectItem>
+                        <SelectItem value="Hull damage">Hull Damage</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Severity</label>
-                    <Select defaultValue="low">
-                      <SelectTrigger className="bg-white">
-                        <SelectValue placeholder="Select severity" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low (Info only)</SelectItem>
-                        <SelectItem value="medium">Medium (Needs fixing)</SelectItem>
-                        <SelectItem value="high">High (Do not sail)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {noteCategory !== 'Inventory' && (
+                    <div className="space-y-2">
+                      <Label>Severity</Label>
+                      <Select value={noteSeverity} onValueChange={(v) => setNoteSeverity(v as MaintenanceSeverity)}>
+                        <SelectTrigger className="bg-white">
+                          <SelectValue placeholder="Select severity" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Low">Low (Info only)</SelectItem>
+                          <SelectItem value="Medium">Medium (Needs fixing)</SelectItem>
+                          <SelectItem value="High">High (Do not sail)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Description</label>
-                  <textarea
-                    className="w-full min-h-[80px] px-3 py-2 text-sm rounded-md border border-input bg-white placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    placeholder="Describe the issue or inspection results..."
+                  <Label>Description</Label>
+                  <Textarea
+                    className="bg-white"
+                    placeholder={
+                      noteCategory === 'Inventory'
+                        ? 'Optional notes about inventory check...'
+                        : 'Describe the issue or inspection results...'
+                    }
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    rows={3}
                   />
                 </div>
                 <div className="flex justify-end">
-                  <Button onClick={() => showFeatureModal('saveLogEntry')}>
-                    Save Log Entry
+                  <Button
+                    onClick={handleSaveLogEntry}
+                    disabled={createMaintenanceMutation.isPending || (!noteText && noteCategory !== 'Inventory')}
+                    className="bg-[#1f2937] hover:bg-[#374151]"
+                  >
+                    {createMaintenanceMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Log Entry'
+                    )}
                   </Button>
                 </div>
               </CardContent>
@@ -658,7 +897,57 @@ export function BoatDetailsPage() {
                 ) : (
                   <div className="space-y-3">
                     {maintenance.map((entry) => (
-                      <MaintenanceItem key={entry.id} entry={entry} />
+                      <div key={entry.id} className="border rounded-lg p-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant={entry.category === 'Inspection' || entry.category === 'Inventory' ? 'secondary' : 'default'}>
+                                {entry.category}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDate(entry.reportedAt, 'MMM d, yyyy')}
+                              </span>
+                              <Badge variant={entry.status === 'Resolved' ? 'outline' : 'destructive'} className="text-xs">
+                                {entry.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm">{entry.description}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Logged by {entry.reportedBy}
+                            </p>
+                            {entry.severity === 'High' && entry.status !== 'Resolved' && (
+                              <p className="text-xs text-red-500 mt-1 font-medium">High Priority</p>
+                            )}
+                            {entry.resolvedBy && (
+                              <p className="text-xs text-muted-foreground">
+                                Resolved by {entry.resolvedBy}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 ml-2">
+                            {entry.status !== 'Resolved' && permissions.canEdit && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => resolveMaintenanceMutation.mutate(entry.id)}
+                              >
+                                <CheckSquare className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {permissions.canDelete && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-500 hover:text-red-600"
+                                onClick={() => deleteMaintenanceMutation.mutate(entry.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -670,6 +959,205 @@ export function BoatDetailsPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Boat Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Boat Details</DialogTitle>
+            <DialogDescription>
+              Update the information for this vessel.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Display Name</Label>
+                <Input
+                  value={editForm.displayName || ''}
+                  onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Hull Number</Label>
+                <Input
+                  value={editForm.hullNumber || ''}
+                  onChange={(e) => setEditForm({ ...editForm, hullNumber: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Boat Type</Label>
+                <Select
+                  value={editForm.type}
+                  onValueChange={(v) => setEditForm({ ...editForm, type: v as BoatType })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BOAT_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Organization</Label>
+                <Select
+                  value={editForm.organization}
+                  onValueChange={(v) => setEditForm({ ...editForm, organization: v as Organization })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ORGANIZATIONS.map((org) => (
+                      <SelectItem key={org} value={org}>{org}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Storage Location</Label>
+              <Input
+                value={editForm.location || ''}
+                onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+              />
+            </div>
+            <div className="border-t pt-4 mt-2">
+              <h4 className="font-medium mb-3">Specifications</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Manufacturer</Label>
+                  <Input
+                    value={editForm.manufacturer || ''}
+                    onChange={(e) => setEditForm({ ...editForm, manufacturer: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Model</Label>
+                  <Input
+                    value={editForm.model || ''}
+                    onChange={(e) => setEditForm({ ...editForm, model: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="space-y-2">
+                  <Label>Year Built</Label>
+                  <Input
+                    type="number"
+                    value={editForm.year || ''}
+                    onChange={(e) => setEditForm({ ...editForm, year: e.target.value ? parseInt(e.target.value) : undefined })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Hull Color</Label>
+                  <Input
+                    value={editForm.color || ''}
+                    onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="border-t pt-4 mt-2">
+              <h4 className="font-medium mb-3">Location Coordinates</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Latitude</Label>
+                  <Input
+                    type="number"
+                    step="0.000001"
+                    value={editForm.latitude || ''}
+                    onChange={(e) => setEditForm({ ...editForm, latitude: e.target.value ? parseFloat(e.target.value) : undefined })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Longitude</Label>
+                  <Input
+                    type="number"
+                    step="0.000001"
+                    value={editForm.longitude || ''}
+                    onChange={(e) => setEditForm({ ...editForm, longitude: e.target.value ? parseFloat(e.target.value) : undefined })}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="border-t pt-4 mt-2">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Regatta Preferred</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Mark this boat as preferred for regatta events
+                  </p>
+                </div>
+                <Switch
+                  checked={editForm.isRegattaPreferred || false}
+                  onCheckedChange={(checked) => setEditForm({ ...editForm, isRegattaPreferred: checked })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Quick Notes</Label>
+              <Textarea
+                value={editForm.notes || ''}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={updateBoatMutation.isPending}
+              className="bg-[#1f2937] hover:bg-[#374151]"
+            >
+              {updateBoatMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Vessel?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete <strong>{boat.displayName}</strong> and remove its data from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteBoatMutation.mutate()}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {deleteBoatMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

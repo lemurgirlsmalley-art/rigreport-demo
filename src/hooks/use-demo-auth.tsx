@@ -57,6 +57,8 @@ const DEMO_USERS: Record<Role, DemoUser> = {
     email: 'admin@rigreport.demo',
     role: 'admin',
     organization: 'YOH',
+    status: 'active',
+    createdAt: '2024-01-15T10:00:00Z',
   },
   coach: {
     id: 'demo-coach',
@@ -64,6 +66,8 @@ const DEMO_USERS: Record<Role, DemoUser> = {
     email: 'coach@rigreport.demo',
     role: 'coach',
     organization: 'EO',
+    status: 'active',
+    createdAt: '2024-02-10T14:30:00Z',
   },
   volunteer: {
     id: 'demo-volunteer',
@@ -71,6 +75,8 @@ const DEMO_USERS: Record<Role, DemoUser> = {
     email: 'volunteer@rigreport.demo',
     role: 'volunteer',
     organization: 'DSC',
+    status: 'active',
+    createdAt: '2024-03-05T09:15:00Z',
   },
   junior_sailor: {
     id: 'demo-junior',
@@ -78,6 +84,8 @@ const DEMO_USERS: Record<Role, DemoUser> = {
     email: 'junior@rigreport.demo',
     role: 'junior_sailor',
     organization: 'YOH',
+    status: 'active',
+    createdAt: '2024-04-20T11:45:00Z',
   },
 };
 

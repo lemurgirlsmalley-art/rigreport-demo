@@ -18,7 +18,6 @@ import { useBoats, useUpdateBoat } from '@/hooks/use-boats';
 import { useEquipment } from '@/hooks/use-equipment';
 import { useCreateMaintenance } from '@/hooks/use-maintenance';
 import { useDemoAuth } from '@/hooks/use-demo-auth';
-import { useFeatureModal } from '@/hooks/use-feature-modal';
 import { toast } from '@/hooks/use-toast';
 import type {
   MaintenanceCategory,
@@ -65,7 +64,6 @@ export function ReportDamagePage() {
   const createMaintenance = useCreateMaintenance();
   const updateBoat = useUpdateBoat();
   const { user, permissions } = useDemoAuth();
-  const { showFeatureModal } = useFeatureModal();
 
   const [activeTab, setActiveTab] = useState('report');
 
@@ -92,6 +90,7 @@ export function ReportDamagePage() {
   const [repairImageUrl, setRepairImageUrl] = useState<string | null>(null);
   const [isUploadingRepairImage, setIsUploadingRepairImage] = useState(false);
   const repairFileInputRef = useRef<HTMLInputElement>(null);
+  const [isSubmittingRepair, setIsSubmittingRepair] = useState(false);
 
   const handleDamageImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -212,6 +211,98 @@ export function ReportDamagePage() {
   };
 
   const isFormValid = selectedItem && damageType && severity && description.trim();
+  const isRepairFormValid = repairSelectedItem && repairType && repairDescription.trim();
+
+  // Map repair type to maintenance category
+  const repairTypeToCategory = (type: string): MaintenanceCategory => {
+    const mapping: Record<string, MaintenanceCategory> = {
+      'Hull Repair': 'Hull damage',
+      'Rigging Repair': 'Rigging issue',
+      'Sail Repair': 'Rigging issue',
+      'Motor Repair': 'Repair',
+      'General Maintenance': 'Repair',
+      'Safety Equipment': 'Repair',
+      'Other': 'Other',
+    };
+    return mapping[type] || 'Repair';
+  };
+
+  const handleRepairSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!repairSelectedItem || !repairType || !repairDescription.trim()) {
+      toast({
+        title: 'Missing fields',
+        description: 'Please fill in all required fields',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmittingRepair(true);
+
+    try {
+      // Build description with all details
+      let fullDescription = repairDescription.trim();
+      if (partsUsed.trim()) {
+        fullDescription += `\n\nParts used: ${partsUsed.trim()}`;
+      }
+      if (totalCost.trim()) {
+        fullDescription += `\n\nTotal cost: $${totalCost.trim()}`;
+      }
+      if (additionalNotes.trim()) {
+        fullDescription += `\n\nNotes: ${additionalNotes.trim()}`;
+      }
+
+      // Create a resolved maintenance entry (repair log)
+      await createMaintenance.mutateAsync({
+        boatId: repairItemType === 'boat' ? repairSelectedItem : '',
+        equipmentId: repairItemType === 'equipment' ? repairSelectedItem : undefined,
+        category: repairTypeToCategory(repairType),
+        severity: 'Low', // Repairs are logged as resolved, so severity is informational
+        status: 'Resolved',
+        description: fullDescription,
+        reportedBy: user?.name || 'Anonymous',
+      });
+
+      // If it's a boat, optionally set status to OK (since repair is complete)
+      if (repairItemType === 'boat') {
+        const boat = boats.find(b => b.id === repairSelectedItem);
+        if (boat && (boat.status === 'Needs repair' || boat.status === 'Do not sail')) {
+          await updateBoat.mutateAsync({
+            id: repairSelectedItem,
+            data: { status: 'OK' },
+          });
+        }
+      }
+
+      toast({
+        title: 'Repair logged',
+        description: 'Your repair log has been saved',
+        variant: 'success',
+      });
+
+      // Reset repair form
+      setRepairSelectedItem('');
+      setRepairType('');
+      setRepairDescription('');
+      setPartsUsed('');
+      setTotalCost('');
+      setAdditionalNotes('');
+      setRepairImageUrl(null);
+      if (repairFileInputRef.current) {
+        repairFileInputRef.current.value = '';
+      }
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to save repair log. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmittingRepair(false);
+    }
+  };
 
   // Dynamic header based on active tab
   const headerConfig = activeTab === 'report'
@@ -497,7 +588,7 @@ export function ReportDamagePage() {
                 </p>
               </CardHeader>
               <CardContent>
-                <form className="space-y-6">
+                <form onSubmit={handleRepairSubmit} className="space-y-6">
                   {/* What was repaired? */}
                   <div className="space-y-3">
                     <Label>What was repaired?</Label>
@@ -691,11 +782,18 @@ export function ReportDamagePage() {
 
                   {/* Submit */}
                   <Button
-                    type="button"
+                    type="submit"
                     className="w-full"
-                    onClick={() => showFeatureModal('saveLogEntry')}
+                    disabled={!isRepairFormValid || isSubmittingRepair || !permissions.canResolveMaintenance}
                   >
-                    Save Repair Log
+                    {isSubmittingRepair ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Repair Log'
+                    )}
                   </Button>
                 </form>
               </CardContent>

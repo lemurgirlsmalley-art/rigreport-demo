@@ -6,7 +6,7 @@ import { MOCK_BOATS, MOCK_EQUIPMENT, MOCK_MAINTENANCE, MOCK_SLIPS, MOCK_SLIP_MEM
 import { generateId } from './utils';
 
 const STORAGE_PREFIX = 'rigreport_demo_';
-const DATA_VERSION = '6'; // Increment this to force a data reset
+const DATA_VERSION = '7'; // Increment this to force a data reset
 
 class MockDataStore {
   private boats: Boat[];

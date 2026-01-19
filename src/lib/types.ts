@@ -146,7 +146,7 @@ export interface Reservation {
 
 // Slip types for marina management
 export type SlipStatus = 'available' | 'occupied' | 'reserved' | 'maintenance' | 'unavailable';
-export type SlipType = 'standard' | 'large' | 'covered' | 'end-tie' | 't-head';
+export type SlipType = 'standard' | 'covered' | 'end' | 'transient';
 export type MemberAssignmentRole = 'primary' | 'secondary' | 'emergency';
 export type PaymentMethod = 'check' | 'cash' | 'card' | 'transfer' | 'other';
 export type PaymentStatus = 'completed' | 'pending' | 'refunded';

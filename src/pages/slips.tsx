@@ -20,7 +20,8 @@ import {
 } from '@/components/ui/dialog';
 import { mockStore } from '@/lib/mockDataStore';
 import type { Slip, SlipStatus, SlipType } from '@/lib/types';
-import { Search, Anchor, MapPin, Zap, Droplets, Loader2, Plus, DollarSign } from 'lucide-react';
+import { Search, Anchor, MapPin, Zap, Droplets, Loader2, Plus, DollarSign, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { cn } from '@/lib/utils';
 import { useDemoAuth } from '@/hooks/use-demo-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -65,6 +66,28 @@ export function SlipsPage() {
     queryFn: () => mockStore.getSlips(),
   });
 
+  const { data: allMembers = [] } = useQuery({
+    queryKey: ['slip-members'],
+    queryFn: () => mockStore.getSlipMembers(),
+  });
+
+  const { data: allMemberAssignments = [] } = useQuery({
+    queryKey: ['slip-member-assignments'],
+    queryFn: () => mockStore.getSlipMemberAssignments(),
+  });
+
+  const { data: allBoats = [] } = useQuery({
+    queryKey: ['slip-boats'],
+    queryFn: () => mockStore.getSlipBoats(),
+  });
+
+  const { data: allPayments = [] } = useQuery({
+    queryKey: ['slip-payments'],
+    queryFn: () => mockStore.getSlipPayments(),
+  });
+
+  const [isExporting, setIsExporting] = useState(false);
+
   const createSlipMutation = useMutation({
     mutationFn: (data: Omit<Slip, 'id' | 'createdAt' | 'updatedAt'>) => mockStore.createSlip(data),
     onSuccess: () => {
@@ -108,6 +131,155 @@ export function SlipsPage() {
     });
   };
 
+  const handleExportToExcel = async () => {
+    setIsExporting(true);
+    try {
+      const workbook = XLSX.utils.book_new();
+
+      // Helper function to auto-size columns based on content
+      const autoSizeColumns = (sheet: XLSX.WorkSheet, data: Record<string, unknown>[]) => {
+        if (data.length === 0) return;
+        const headers = Object.keys(data[0]);
+        const colWidths = headers.map(header => {
+          let maxLen = header.length;
+          data.forEach(row => {
+            const val = row[header];
+            const len = val ? String(val).length : 0;
+            if (len > maxLen) maxLen = len;
+          });
+          return { wch: Math.min(maxLen + 2, 50) };
+        });
+        sheet['!cols'] = colWidths;
+      };
+
+      // Sheet 1: Slips
+      const slipsData = filteredSlips.map(slip => ({
+        'Slip Number': slip.slipNumber,
+        'Display Name': slip.displayName,
+        'Dock': slip.dock,
+        'Location': slip.location || '',
+        'Type': slip.slipType,
+        'Status': slip.status,
+        'Length': slip.length || '',
+        'Width': slip.width || '',
+        'Depth': slip.depth || '',
+        'Has Electric': slip.hasElectric ? 'Yes' : 'No',
+        'Has Water': slip.hasWater ? 'Yes' : 'No',
+        'Monthly Rate': slip.monthlyRate ? `$${slip.monthlyRate.toLocaleString()}` : '',
+        'Annual Rate': slip.annualRate ? `$${slip.annualRate.toLocaleString()}` : '',
+        'Insurance Provider': slip.insuranceProvider || '',
+        'Policy Number': slip.insurancePolicyNumber || '',
+        'Insurance Expiration': slip.insuranceExpiration || '',
+        'Liability Coverage': slip.liabilityCoverage ? `$${slip.liabilityCoverage.toLocaleString()}` : '',
+        'Notes': slip.notes || '',
+      }));
+      const slipsSheet = XLSX.utils.json_to_sheet(slipsData);
+      autoSizeColumns(slipsSheet, slipsData);
+      XLSX.utils.book_append_sheet(workbook, slipsSheet, 'Slips');
+
+      // Sheet 2: Members
+      const membersData = allMembers.map(member => ({
+        'First Name': member.firstName,
+        'Last Name': member.lastName,
+        'Email': member.email,
+        'Phone': member.phone || '',
+        'Address': member.address || '',
+        'City': member.city || '',
+        'State': member.state || '',
+        'Zip Code': member.zipCode || '',
+        'Emergency Contact': member.emergencyContactName || '',
+        'Emergency Phone': member.emergencyContactPhone || '',
+        'Active': member.isActive ? 'Yes' : 'No',
+        'Notes': member.notes || '',
+      }));
+      const membersSheet = XLSX.utils.json_to_sheet(membersData);
+      autoSizeColumns(membersSheet, membersData);
+      XLSX.utils.book_append_sheet(workbook, membersSheet, 'Members');
+
+      // Sheet 3: Member Assignments
+      const assignmentsData = allMemberAssignments.map(assignment => {
+        const slip = slips.find(s => s.id === assignment.slipId);
+        const member = allMembers.find(m => m.id === assignment.memberId);
+        return {
+          'Slip': slip?.displayName || assignment.slipId,
+          'Member': member ? `${member.firstName} ${member.lastName}` : assignment.memberId,
+          'Role': assignment.role,
+          'Start Date': assignment.startDate || '',
+          'End Date': assignment.endDate || '',
+        };
+      });
+      const assignmentsSheet = XLSX.utils.json_to_sheet(assignmentsData);
+      autoSizeColumns(assignmentsSheet, assignmentsData);
+      XLSX.utils.book_append_sheet(workbook, assignmentsSheet, 'Member Assignments');
+
+      // Sheet 4: Boats
+      const boatsData = allBoats.map(boat => {
+        const slip = slips.find(s => s.id === boat.slipId);
+        return {
+          'Slip': slip?.displayName || boat.slipId,
+          'Boat Name': boat.boatName,
+          'Type': boat.boatType || '',
+          'Manufacturer': boat.manufacturer || '',
+          'Model': boat.model || '',
+          'Year': boat.year || '',
+          'Length': boat.length || '',
+          'Beam': boat.beam || '',
+          'Draft': boat.draft || '',
+          'Hull Color': boat.hullColor || '',
+          'Registration #': boat.registrationNumber || '',
+          'HIN': boat.hin || '',
+          'Owner': boat.ownerName || '',
+          'Active': boat.isActive ? 'Yes' : 'No',
+          'Notes': boat.notes || '',
+        };
+      });
+      const boatsSheet = XLSX.utils.json_to_sheet(boatsData);
+      autoSizeColumns(boatsSheet, boatsData);
+      XLSX.utils.book_append_sheet(workbook, boatsSheet, 'Boats');
+
+      // Sheet 5: Payments
+      const paymentsData = allPayments.map(payment => {
+        const slip = slips.find(s => s.id === payment.slipId);
+        const member = allMembers.find(m => m.id === payment.memberId);
+        return {
+          'Slip': slip?.displayName || payment.slipId,
+          'Member': member ? `${member.firstName} ${member.lastName}` : '',
+          'Amount': `$${payment.amount.toLocaleString()}`,
+          'Payment Date': payment.paymentDate,
+          'Method': payment.paymentMethod,
+          'Period Start': payment.periodStart || '',
+          'Period End': payment.periodEnd || '',
+          'Status': payment.status,
+          'Reference #': payment.referenceNumber || '',
+          'Notes': payment.notes || '',
+        };
+      });
+      const paymentsSheet = XLSX.utils.json_to_sheet(paymentsData);
+      autoSizeColumns(paymentsSheet, paymentsData);
+      XLSX.utils.book_append_sheet(workbook, paymentsSheet, 'Payments');
+
+      // Generate filename with date
+      const date = new Date().toISOString().split('T')[0];
+      const filename = `slips-export-${date}.xlsx`;
+
+      // Download
+      XLSX.writeFile(workbook, filename);
+
+      toast({
+        title: 'Export Complete',
+        description: `Slip data exported to ${filename}`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Export Failed',
+        description: 'Could not export slip data. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Get unique docks for filter
   const uniqueDocks = Array.from(new Set(slips.map((s) => s.dock))).filter(Boolean).sort();
 
@@ -140,13 +312,27 @@ export function SlipsPage() {
             <h1 className="text-3xl font-bold text-foreground tracking-tight">Slips</h1>
             <p className="text-muted-foreground">Manage marina slip assignments and rentals.</p>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="bg-[#1f2937] hover:bg-[#374151]">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Slip
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportToExcel}
+              disabled={isExporting || slips.length === 0}
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Export
+            </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="bg-[#1f2937] hover:bg-[#374151]">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Slip
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Slip</DialogTitle>
@@ -196,10 +382,9 @@ export function SlipsPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="standard">Standard</SelectItem>
-                        <SelectItem value="large">Large</SelectItem>
                         <SelectItem value="covered">Covered</SelectItem>
-                        <SelectItem value="end-tie">End Tie</SelectItem>
-                        <SelectItem value="t-head">T-Head</SelectItem>
+                        <SelectItem value="end">End Slip</SelectItem>
+                        <SelectItem value="transient">Transient</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -312,7 +497,8 @@ export function SlipsPage() {
                 </Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
 
         {/* Filters */}
@@ -359,10 +545,9 @@ export function SlipsPage() {
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="standard">Standard</SelectItem>
-                  <SelectItem value="large">Large</SelectItem>
                   <SelectItem value="covered">Covered</SelectItem>
-                  <SelectItem value="end-tie">End Tie</SelectItem>
-                  <SelectItem value="t-head">T-Head</SelectItem>
+                  <SelectItem value="end">End Slip</SelectItem>
+                  <SelectItem value="transient">Transient</SelectItem>
                 </SelectContent>
               </Select>
             </div>

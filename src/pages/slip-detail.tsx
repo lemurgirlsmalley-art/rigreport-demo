@@ -64,10 +64,9 @@ const statusLabels: Record<SlipStatus, string> = {
 
 const slipTypeLabels: Record<SlipType, string> = {
   'standard': 'Standard',
-  'large': 'Large',
   'covered': 'Covered',
-  'end-tie': 'End Tie',
-  't-head': 'T-Head',
+  'end': 'End Slip',
+  'transient': 'Transient',
 };
 
 export function SlipDetailPage() {
@@ -481,10 +480,9 @@ function EditSlipDialog({ slip }: { slip: Slip }) {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="standard">Standard</SelectItem>
-                    <SelectItem value="large">Large</SelectItem>
                     <SelectItem value="covered">Covered</SelectItem>
-                    <SelectItem value="end-tie">End Tie</SelectItem>
-                    <SelectItem value="t-head">T-Head</SelectItem>
+                    <SelectItem value="end">End Slip</SelectItem>
+                    <SelectItem value="transient">Transient</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

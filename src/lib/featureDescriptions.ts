@@ -194,4 +194,89 @@ export const featureDescriptions: Record<string, FeatureDescription> = {
     ],
     icon: 'export',
   },
+  exportFleet: {
+    title: 'Export Fleet to Excel',
+    description: 'Production RigReport exports complete fleet data to a downloadable Excel spreadsheet.',
+    productionFeatures: [
+      'Creates .xlsx file with all fleet data',
+      'Columns: Display Name, Sail Number, Hull ID (HIN), Boat Type',
+      'Columns: Organization, Status, Storage Location',
+      'Columns: Registration, Reg. Expiration, Insurance Limit, Deductible',
+      'Columns: Last Inspection date, Regatta Preferred (Yes/No)',
+      'Auto-sizes columns for readability',
+      'Filename format: RigReport_Fleet_YYYY-MM-DD.xlsx',
+    ],
+    icon: 'export',
+  },
+  exportSlips: {
+    title: 'Export Slips to Excel',
+    description: 'Production RigReport exports comprehensive slip management data to a multi-sheet Excel workbook.',
+    productionFeatures: [
+      'Sheet 1: Slips - Number, dock, dimensions, amenities, rates, insurance',
+      'Sheet 2: Members - Contact info, address, emergency contacts',
+      'Sheet 3: Member Assignments - Slip assignments with roles and dates',
+      'Sheet 4: Boats - Boat details, registration, HIN for each slip',
+      'Sheet 5: Payments - Payment history with amounts, dates, methods',
+      'Intelligent name resolution (shows names instead of IDs)',
+      'Filename format: slips-export-YYYY-MM-DD.xlsx',
+    ],
+    icon: 'export',
+  },
+
+  // Slip Management
+  addSlip: {
+    title: 'Add New Slip',
+    description: 'Production RigReport allows admins to register new marina slips with full details.',
+    productionFeatures: [
+      'Enter slip number, display name, and assign to dock',
+      'Select slip type: Standard, Large, Covered, End Tie, or T-Head',
+      'Set dimensions: length, width, and depth',
+      'Configure amenities: electric and water hookups',
+      'Set monthly and annual rental rates',
+      'Add location description and notes',
+      'Slip becomes available for member assignment',
+    ],
+    icon: 'add',
+  },
+
+  // User Management Actions
+  approveUser: {
+    title: 'Approve User Registration',
+    description: 'Production RigReport has a registration approval workflow for coaches and admins.',
+    productionFeatures: [
+      'Review pending user registration requests',
+      'View requested role (Admin, Coach, Volunteer, Junior Sailor)',
+      'Approve users to grant system access',
+      'Approved user receives email confirmation',
+      'User can immediately log in after approval',
+      'Volunteers are auto-approved on registration',
+    ],
+    icon: 'user',
+  },
+  denyUser: {
+    title: 'Deny User Registration',
+    description: 'Production RigReport allows admins to reject registration requests.',
+    productionFeatures: [
+      'Reject pending user registration',
+      'User receives email notification of denial',
+      'Registration is permanently removed',
+      'User can re-register with different details',
+      'Requires admin role to perform',
+    ],
+    icon: 'delete',
+  },
+  changeUserRole: {
+    title: 'Change User Role',
+    description: 'Production RigReport allows admins to modify user permissions by changing roles.',
+    productionFeatures: [
+      'Change between: Administrator, Coach, Volunteer, Junior Sailor',
+      'Each role has different permissions:',
+      '• Admin: Full access, user management, all settings',
+      '• Coach: Edit boats/equipment, manage maintenance, reports',
+      '• Volunteer: View fleet, report damage, limited editing',
+      '• Junior Sailor: View-only access to fleet information',
+      'Cannot change your own role (prevents lockout)',
+    ],
+    icon: 'user',
+  },
 };
